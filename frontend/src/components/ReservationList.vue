@@ -157,7 +157,17 @@
             <div class="qr-info" v-if="selectedReservation">
               <p><strong>Name:</strong> {{ selectedReservation.name }}</p>
               <p><strong>Table:</strong> {{ selectedReservation.table }}</p>
-              <p><strong>ID:</strong> {{ selectedReservation.id }}</p>
+              <p>
+                <strong>Date:</strong> {{ formatDate(selectedReservation.date) }} at
+                {{ selectedReservation.time }}
+              </p>
+              <p v-if="selectedReservation.qrCode">
+                <strong>Code:</strong> {{ selectedReservation.qrCode }}
+              </p>
+              <p class="qr-instruction">
+                Scan this QR code at <a href="/confirm" target="_blank">/confirm</a> to verify your
+                reservation
+              </p>
             </div>
           </div>
         </div>
@@ -218,11 +228,9 @@ const formatDate = (dateStr) => {
 
 const generateQRCode = async (reservation) => {
   selectedReservation.value = reservation
-  const qrData = JSON.stringify({
-    id: reservation.id,
-    name: reservation.name,
-    table: reservation.table,
-  })
+  // Use the qrCode from the reservation if available, otherwise generate one
+  const qrData =
+    reservation.qrCode || `RES-${reservation.id}-${new Date(reservation.createdAt).getTime()}`
 
   try {
     qrCodeDataUrl.value = await QRCode.toDataURL(qrData, {
@@ -804,6 +812,25 @@ const closeQRModal = () => {
 
 .qr-info strong {
   color: #d4af37;
+}
+
+.qr-instruction {
+  margin-top: 1rem !important;
+  padding: 0.75rem;
+  background: rgba(212, 175, 55, 0.1);
+  border-radius: 8px;
+  font-size: 0.85rem !important;
+  color: rgba(244, 229, 194, 0.8) !important;
+}
+
+.qr-instruction a {
+  color: #d4af37;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.qr-instruction a:hover {
+  text-decoration: underline;
 }
 
 .empty-state {

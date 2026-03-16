@@ -17,11 +17,31 @@ CREATE TABLE IF NOT EXISTS reservations (
     table_preference VARCHAR(100) NOT NULL DEFAULT 'Window Table',
     status ENUM('pending', 'confirmed', 'cancelled') NOT NULL DEFAULT 'pending',
     special_requests TEXT,
+    qr_code VARCHAR(255),
+    verified BOOLEAN NOT NULL DEFAULT FALSE,
+    verified_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_status (status),
     INDEX idx_date (date),
-    INDEX idx_email (email)
+    INDEX idx_email (email),
+    INDEX idx_qr_code (qr_code),
+    INDEX idx_verified (verified)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create reservation_verifications table
+CREATE TABLE IF NOT EXISTS reservation_verifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    reservation_id INT NOT NULL,
+    qr_code VARCHAR(255) NOT NULL,
+    verified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    verification_method ENUM('qr_scan', 'manual_entry') NOT NULL DEFAULT 'qr_scan',
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE,
+    INDEX idx_reservation_id (reservation_id),
+    INDEX idx_qr_code (qr_code),
+    INDEX idx_verified_at (verified_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Insert sample data
@@ -31,3 +51,6 @@ INSERT INTO reservations (name, email, phone, date, time, guests, table_preferen
 ('Emma Williams', 'emma.w@email.com', '+1 (555) 456-7890', '2026-03-22', '18:00:00', 6, 'Private Room A', 'confirmed', 'Birthday celebration, need high chair for toddler', '2026-03-14 09:00:00'),
 ('James Rodriguez', 'j.rodriguez@email.com', '+1 (555) 234-5678', '2026-03-19', '19:30:00', 3, 'Window Table', 'cancelled', '', '2026-03-14 14:00:00'),
 ('Lisa Thompson', 'lisa.t@email.com', '+1 (555) 876-5432', '2026-03-23', '21:00:00', 2, 'Champagne Bar', 'confirmed', 'Wine pairing menu preferred', '2026-03-13 16:00:00');
+
+-- Update sample reservations with QR codes
+UPDATE reservations SET qr_code = CONCAT('RES-', id, '-', UNIX_TIMESTAMP(created_at)) WHERE qr_code IS NULL;
