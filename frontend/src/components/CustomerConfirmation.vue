@@ -248,6 +248,11 @@ const statusText = computed(() => {
 const startScanner = async () => {
   try {
     errorMessage.value = ''
+    scannerActive.value = true // Set to true FIRST so element is visible
+
+    // Wait for DOM to update
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
     html5QrCode = new Html5Qrcode('qr-reader')
 
     const config = {
@@ -257,11 +262,10 @@ const startScanner = async () => {
     }
 
     await html5QrCode.start({ facingMode: 'environment' }, config, onScanSuccess, onScanFailure)
-
-    scannerActive.value = true
   } catch (err) {
     console.error('Error starting scanner:', err)
     errorMessage.value = 'Unable to access camera. Please check permissions or enter code manually.'
+    scannerActive.value = false // Reset on error
   }
 }
 

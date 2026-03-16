@@ -5,7 +5,8 @@
  */
 
 // Set CORS headers to allow frontend access
-header('Access-Control-Allow-Origin: http://localhost:5173');
+header('Access-Control-Allow-Origin: *'); // Allow all origins for development
+// For production, use specific origin: header('Access-Control-Allow-Origin: https://yourdomain.com');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');
