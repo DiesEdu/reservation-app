@@ -1,0 +1,26 @@
+# Apache Configuration for Clean URLs
+# This enables clean URLs like /api/reservations instead of /api.php?endpoint=reservations
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /api/
+    
+    # If the request is for a real file or directory, skip rewriting
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    
+    # Rewrite all other requests to api.php
+    RewriteRule ^(.*)$ api.php [QSA,L]
+</IfModule>
+
+# PHP Settings
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+php_value memory_limit 256M
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>

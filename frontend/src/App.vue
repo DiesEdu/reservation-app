@@ -84,13 +84,18 @@
 </template>
 
 <script setup>
-import { computed, reactive } from 'vue'
+import { computed, reactive, onMounted } from 'vue'
 import { useReservationStore } from './stores/reservations'
 import Navbar from './components/Navbar.vue'
 import ReservationForm from './components/ReservationForm.vue'
 import ReservationList from './components/ReservationList.vue'
 
 const store = useReservationStore()
+
+// Fetch reservations on app mount
+onMounted(() => {
+  store.fetchReservations()
+})
 
 const stats = reactive([
   {

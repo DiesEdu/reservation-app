@@ -179,9 +179,11 @@ const form = reactive({
 
 const submitForm = async () => {
   isSubmitting.value = true
-  await new Promise((resolve) => setTimeout(resolve, 1500))
-  store.addReservation({ ...form })
-  resetForm()
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  const success = await store.addReservation({ ...form })
+  if (success) {
+    resetForm()
+  }
   isSubmitting.value = false
 }
 

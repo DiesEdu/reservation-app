@@ -159,17 +159,17 @@ const cancelledCount = computed(
   () => store.reservations.filter((r) => r.status === 'cancelled').length,
 )
 
-const confirmReservation = (id) => {
-  store.updateStatus(id, 'confirmed')
+const confirmReservation = async (id) => {
+  await store.updateStatus(id, 'confirmed')
 }
 
-const cancelReservation = (id) => {
-  store.updateStatus(id, 'cancelled')
+const cancelReservation = async (id) => {
+  await store.updateStatus(id, 'cancelled')
 }
 
-const deleteReservation = (id) => {
+const deleteReservation = async (id) => {
   if (confirm('Are you sure you want to delete this reservation?')) {
-    store.deleteReservation(id)
+    await store.deleteReservation(id)
   }
 }
 
