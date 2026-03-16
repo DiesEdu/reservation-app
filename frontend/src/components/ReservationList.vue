@@ -83,6 +83,13 @@
               </div>
               <div class="action-buttons">
                 <button
+                  @click="generateQRCode(res)"
+                  class="action-btn qrcode"
+                  title="Generate QR Code"
+                >
+                  <i class="bi bi-qr-code"></i>
+                </button>
+                <button
                   v-if="res.status === 'pending'"
                   @click="confirmReservation(res.id)"
                   class="action-btn confirm"
@@ -132,15 +139,43 @@
         </span>
       </div>
     </div>
+
+    <!-- QR Code Modal -->
+    <Teleport to="body">
+      <div v-if="showQRModal" class="qr-modal-overlay" @click="closeQRModal">
+        <div class="qr-modal-content" @click.stop>
+          <div class="qr-modal-header">
+            <h5>Reservation QR Code</h5>
+            <button class="qr-close-btn" @click="closeQRModal">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="qr-modal-body">
+            <div class="qr-code-container">
+              <img :src="qrCodeDataUrl" alt="Reservation QR Code" />
+            </div>
+            <div class="qr-info" v-if="selectedReservation">
+              <p><strong>Name:</strong> {{ selectedReservation.name }}</p>
+              <p><strong>Table:</strong> {{ selectedReservation.table }}</p>
+              <p><strong>ID:</strong> {{ selectedReservation.id }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { useReservationStore } from '../stores/reservations'
+import QRCode from 'qrcode'
 
 const store = useReservationStore()
 const filter = ref('all')
+const showQRModal = ref(false)
+const qrCodeDataUrl = ref('')
+const selectedReservation = ref(null)
 
 const tabs = [
   { value: 'all', label: 'All', icon: 'bi bi-grid' },
@@ -179,6 +214,35 @@ const formatDate = (dateStr) => {
     month: 'short',
     day: 'numeric',
   })
+}
+
+const generateQRCode = async (reservation) => {
+  selectedReservation.value = reservation
+  const qrData = JSON.stringify({
+    id: reservation.id,
+    name: reservation.name,
+    table: reservation.table,
+  })
+
+  try {
+    qrCodeDataUrl.value = await QRCode.toDataURL(qrData, {
+      width: 256,
+      margin: 2,
+      color: {
+        dark: '#0a0a0a',
+        light: '#f4e5c2',
+      },
+    })
+    showQRModal.value = true
+  } catch (err) {
+    console.error('Failed to generate QR code:', err)
+  }
+}
+
+const closeQRModal = () => {
+  showQRModal.value = false
+  qrCodeDataUrl.value = ''
+  selectedReservation.value = null
 }
 </script>
 
@@ -616,6 +680,130 @@ const formatDate = (dateStr) => {
   color: white;
   transform: scale(1.1);
   box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+}
+
+.action-btn.qrcode {
+  background: rgba(212, 175, 55, 0.2);
+  color: #d4af37;
+}
+
+.action-btn.qrcode:hover {
+  background: #d4af37;
+  color: #0a0a0a;
+  transform: scale(1.1);
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+}
+
+/* QR Modal Styles */
+.qr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.qr-modal-content {
+  background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(20, 20, 20, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 20px;
+  padding: 2rem;
+  min-width: 320px;
+  max-width: 90%;
+  animation: scaleIn 0.3s ease;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.qr-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.qr-modal-header h5 {
+  color: #f4e5c2;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.qr-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: rgba(212, 175, 55, 0.1);
+  color: #f4e5c2;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.qr-close-btn:hover {
+  background: rgba(220, 53, 69, 0.3);
+  border-color: rgba(220, 53, 69, 0.5);
+  transform: rotate(90deg);
+}
+
+.qr-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.qr-code-container {
+  background: #f4e5c2;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.qr-code-container img {
+  display: block;
+  width: 200px;
+  height: 200px;
+}
+
+.qr-info {
+  text-align: center;
+  color: #f4e5c2;
+}
+
+.qr-info p {
+  margin: 0.3rem 0;
+  font-size: 0.95rem;
+}
+
+.qr-info strong {
+  color: #d4af37;
 }
 
 .empty-state {

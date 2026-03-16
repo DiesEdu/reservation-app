@@ -1,26 +1,40 @@
-# Apache Configuration for Clean URLs
-# This enables clean URLs like /api/reservations instead of /api.php?endpoint=reservations
+# .htaccess
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /api/
     
-    # If the request is for a real file or directory, skip rewriting
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
+    # Set RewriteBase - adjust this if your backend is in a subdirectory
+    # For example: if backend is at /backend/, use: RewriteBase /backend/
+    RewriteBase /backend/
     
-    # Rewrite all other requests to api.php
-    RewriteRule ^(.*)$ api.php [QSA,L]
+    # Serve existing files and directories directly (including uploads)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+    
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    
+    # Redirect everything to index.php
+    RewriteRule ^(.*)$ router.php [QSA,L]
 </IfModule>
-
-# PHP Settings
-php_value upload_max_filesize 10M
-php_value post_max_size 10M
-php_value memory_limit 256M
 
 # Security headers
+
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-Frame-Options "DENY"
     Header set X-XSS-Protection "1; mode=block"
 </IfModule>
+
+# Disable directory browsing
+
+Options -Indexes
+
+# Protect files
+
+<FilesMatch "^\.">
+Order allow,deny
+Deny from all
+</FilesMatch>
