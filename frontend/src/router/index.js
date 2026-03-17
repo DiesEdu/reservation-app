@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '../views/HomePage.vue'
 import CustomerConfirmation from '../components/CustomerConfirmation.vue'
+import AnalyticsPage from '../views/AnalyticsPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,6 +20,14 @@ const router = createRouter({
       component: CustomerConfirmation,
       meta: {
         title: 'Confirm Reservation - Luxe Reserve',
+      },
+    },
+    {
+      path: '/analytics',
+      name: 'analytics',
+      component: AnalyticsPage,
+      meta: {
+        title: 'Analytics - Luxe Reserve',
       },
     },
   ],

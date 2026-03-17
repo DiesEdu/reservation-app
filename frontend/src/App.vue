@@ -18,7 +18,7 @@
         <div class="footer-content">
           <div class="footer-brand">
             <i class="bi bi-gem"></i>
-            <span>LUXE RESERVE</span>
+            <span>RESONANZ RESERVE</span>
           </div>
           <div class="footer-line"></div>
           <p class="footer-text">Elevating hospitality through elegant technology</p>

@@ -14,7 +14,7 @@
         <div class="confirmation-header">
           <div class="logo-section">
             <i class="bi bi-gem"></i>
-            <h1>LUXE RESERVE</h1>
+            <h1>RESONANZ RESERVE</h1>
           </div>
           <p class="subtitle">Reservation Confirmation</p>
         </div>

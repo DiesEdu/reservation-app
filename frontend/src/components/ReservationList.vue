@@ -238,7 +238,7 @@ const generateQRCode = async (reservation) => {
       margin: 2,
       color: {
         dark: '#0a0a0a',
-        light: '#f4e5c2',
+        light: '#ffffff',
       },
     })
     showQRModal.value = true
@@ -788,7 +788,7 @@ const closeQRModal = () => {
 }
 
 .qr-code-container {
-  background: #f4e5c2;
+  background: #fff;
   padding: 1rem;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);

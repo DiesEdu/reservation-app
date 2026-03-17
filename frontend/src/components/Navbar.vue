@@ -6,7 +6,7 @@
           <i class="bi bi-gem"></i>
         </div>
         <div class="brand-text">
-          <span class="brand-main">LUXE</span>
+          <span class="brand-main">RESONANZ</span>
           <span class="brand-sub">RESERVE</span>
         </div>
       </a>
@@ -33,10 +33,10 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">
+            <router-link class="nav-link" to="/analytics">
               <span class="nav-text">Analytics</span>
               <span class="nav-line"></span>
-            </a>
+            </router-link>
           </li>
           <li class="nav-item ms-lg-3">
             <button class="btn btn-gold btn-sm">
