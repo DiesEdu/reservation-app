@@ -201,7 +201,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
 
 // API Base URL
-const API_URL = 'http://localhost:8000/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 // State
 const scannerActive = ref(false)

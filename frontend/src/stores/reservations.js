@@ -2,8 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 // API Base URL - uses relative path for Vite proxy
-const API_URL = 'http://localhost:8000/api'
-// const API_URL = 'https://reserve.resonanz.id/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 export const useReservationStore = defineStore('reservations', () => {
   const reservations = ref([])
