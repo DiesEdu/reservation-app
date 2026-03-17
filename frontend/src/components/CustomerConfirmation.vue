@@ -81,11 +81,31 @@
         <!-- Reservation Details Section -->
         <div v-else class="details-section">
           <div class="success-animation">
-            <div class="checkmark-circle">
-              <i class="bi bi-check-lg"></i>
+            <div class="checkmark-circle" :class="{ 'already-verified': alreadyVerified }">
+              <i :class="alreadyVerified ? 'bi bi-exclamation-lg' : 'bi bi-check-lg'"></i>
             </div>
-            <h2 class="success-title">Reservation Confirmed!</h2>
-            <p class="success-subtitle">We're excited to welcome you</p>
+            <h2 class="success-title">
+              {{ alreadyVerified ? 'Reservation Already Verified' : 'Reservation Confirmed!' }}
+            </h2>
+            <p class="success-subtitle">
+              {{
+                alreadyVerified
+                  ? 'This reservation was previously verified'
+                  : "We're excited to welcome you"
+              }}
+            </p>
+          </div>
+
+          <!-- Already Verified Warning -->
+          <div v-if="alreadyVerified" class="alert-verified">
+            <i class="bi bi-info-circle-fill"></i>
+            <div class="verified-content">
+              <strong>Previously Verified</strong>
+              <span
+                >This QR code was already scanned and verified on
+                {{ formatVerifiedDate(verifiedAt) }}</span
+              >
+            </div>
           </div>
 
           <div class="details-card">
@@ -211,6 +231,8 @@ const reservationCode = ref('')
 const errorMessage = ref('')
 const loading = ref(false)
 const copied = ref(false)
+const alreadyVerified = ref(false)
+const verifiedAt = ref(null)
 let html5QrCode = null
 
 // Computed
@@ -330,10 +352,23 @@ const verifyReservation = async (code) => {
     reservationCode.value = code
     manualCode.value = ''
 
-    // Show message if already verified
-    if (result.data.alreadyVerified) {
-      console.log('Note: This reservation was already verified at', result.data.verifiedAt)
+    // Check if reservation status is confirmed
+    if (result.data.status !== 'confirmed') {
+      let statusMessage = ''
+      if (result.data.status === 'pending') {
+        statusMessage =
+          'Your reservation is still pending confirmation. Please wait for confirmation before verifying.'
+      } else if (result.data.status === 'cancelled') {
+        statusMessage = 'Your reservation has been cancelled. Please contact us for assistance.'
+      } else {
+        statusMessage = 'Your reservation is not confirmed. Status: ' + result.data.status
+      }
+      throw new Error(statusMessage)
     }
+
+    // Check if already verified and set state
+    alreadyVerified.value = result.data.alreadyVerified || false
+    verifiedAt.value = result.data.verifiedAt || null
   } catch (error) {
     console.error('Verification error:', error)
     errorMessage.value = error.message || 'Failed to verify reservation. Please try again.'
@@ -347,6 +382,8 @@ const resetScanner = () => {
   reservationCode.value = ''
   errorMessage.value = ''
   manualCode.value = ''
+  alreadyVerified.value = false
+  verifiedAt.value = null
 }
 
 const formatDate = (dateString) => {
@@ -356,6 +393,19 @@ const formatDate = (dateString) => {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+  })
+}
+
+const formatVerifiedDate = (dateString) => {
+  if (!dateString) return 'Unknown date'
+  const date = new Date(dateString)
+  return date.toLocaleString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -820,6 +870,11 @@ onUnmounted(() => {
   animation: scaleIn 0.5s ease-out;
 }
 
+.checkmark-circle.already-verified {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(251, 191, 36, 0.1) 100%);
+  border-color: #f59e0b;
+}
+
 @keyframes scaleIn {
   from {
     transform: scale(0);
@@ -835,6 +890,10 @@ onUnmounted(() => {
   font-size: 3rem;
   color: #28a745;
   animation: checkmark 0.5s ease-out 0.3s both;
+}
+
+.checkmark-circle.already-verified i {
+  color: #f59e0b;
 }
 
 @keyframes checkmark {
@@ -853,9 +912,48 @@ onUnmounted(() => {
   margin-bottom: 0.5rem;
 }
 
+.success-title.already-verified {
+  color: #f59e0b;
+}
+
 .success-subtitle {
   color: rgba(244, 229, 194, 0.6);
   font-size: 1rem;
+}
+
+/* Already Verified Alert */
+.alert-verified {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(251, 191, 36, 0.1) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  animation: slideIn 0.5s ease-out;
+}
+
+.alert-verified i {
+  font-size: 1.5rem;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.verified-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.verified-content strong {
+  color: #fbbf24;
+  font-size: 1rem;
+}
+
+.verified-content span {
+  color: #9ca3af;
+  font-size: 0.875rem;
 }
 
 /* Details Card */

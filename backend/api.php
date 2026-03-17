@@ -456,6 +456,24 @@ function verifyReservation()
             return;
         }
 
+        // Check if reservation status is confirmed
+        if ($reservation['status'] !== 'confirmed') {
+            http_response_code(400);
+            $errorMessage = '';
+            if ($reservation['status'] === 'pending') {
+                $errorMessage = 'Your reservation is still pending confirmation. Please wait for confirmation before verifying.';
+            } elseif ($reservation['status'] === 'cancelled') {
+                $errorMessage = 'Your reservation has been cancelled. Please contact us for assistance.';
+            } else {
+                $errorMessage = 'Your reservation is not confirmed. Status: ' . $reservation['status'];
+            }
+            echo json_encode([
+                'success' => false,
+                'error' => $errorMessage
+            ]);
+            return;
+        }
+
         // Check if already verified
         if ($reservation['verified']) {
             // Return reservation data even if already verified
