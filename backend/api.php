@@ -25,6 +25,9 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
+
 // Get the request method and parse the URL
 $method = $_SERVER['REQUEST_METHOD'];
 $requestUri = $_SERVER['REQUEST_URI'];
@@ -83,6 +86,17 @@ function renderReservationTicket($id)
     $pdo = $db->getConnection();
 
     try {
+        // Add validation for $id
+        if (!is_numeric($id) || $id <= 0) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'error' => 'Invalid reservation ID'
+            ]);
+            return;
+        }
+
         $stmt = $pdo->prepare("SELECT name, table_preference, qr_code FROM reservations WHERE id = ?");
         $stmt->execute([$id]);
         $reservation = $stmt->fetch();
@@ -153,16 +167,30 @@ function renderReservationTicket($id)
 
         // Add QR code (uses reservation.qr_code value)
         if (!empty($qrData)) {
-            $qrSize = (int) ($width * 0.18); // scale relative to template width
-            $qrImage = buildQrImage($qrData, $qrSize);
+            $qrImage = buildQrImage($qrData, 300);
+
             if ($qrImage) {
-                // Centered horizontally; positioned between name and table
-                $qrX = (int) (($width - $qrSize) / 2);
+                $qrWidth = imagesx($qrImage);
+                $qrHeight = imagesy($qrImage);
+                $qrX = (int) (($width - $qrWidth) / 2);
                 $qrY = $nameY + $qrGapTop;
-                imagecopy($image, $qrImage, $qrX, $qrY, 0, 0, imagesx($qrImage), imagesy($qrImage));
+
+                imagecopy(
+                    $image,
+                    $qrImage,
+                    $qrX,
+                    $qrY,
+                    0,
+                    0,
+                    $qrWidth,
+                    $qrHeight
+                );
+
+                // Set table Y relative to QR bottom
+                $tableY = $qrY + $qrHeight + $qrGapBottom;
+            } else {
+                error_log("Failed to generate QR code for reservation ID: " . $id);
             }
-            // Set table Y relative to QR bottom
-            $tableY = $qrY + $qrSize + $qrGapBottom;
         }
 
         // Draw table text after QR placement
@@ -178,10 +206,18 @@ function renderReservationTicket($id)
         }
 
         header('Content-Type: image/png');
-        header('Content-Disposition: inline; filename=\"ticket-' . $id . '.png\"');
+        header('Content-Disposition: inline; filename="ticket-' . $id . '.png"'); // Fixed quotes
         imagepng($image);
         exit();
+
     } catch (PDOException $e) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error' => 'Database error: ' . $e->getMessage()
+        ]);
+    } catch (Exception $e) {
         http_response_code(500);
         header('Content-Type: application/json');
         echo json_encode([
@@ -197,10 +233,12 @@ function renderReservationTicket($id)
 function resolveTicketFont()
 {
     $candidates = [
-        'C:\\\\Windows\\\\Fonts\\\\arial.ttf',
-        'C:\\\\Windows\\\\Fonts\\\\arialbd.ttf',
+        'C:\\Windows\\Fonts\\arial.ttf',        // Fixed Windows path
+        'C:\\Windows\\Fonts\\arialbd.ttf',      // Fixed Windows path
         '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+        '/System/Library/Fonts/Helvetica.ttc'   // macOS path
     ];
 
     foreach ($candidates as $font) {
@@ -240,42 +278,32 @@ function drawCenteredGdText($image, $font, $y, $text, $color)
 }
 
 /**
- * Build a GD image for a QR code at requested size
+ * Build a GD image for a QR code at requested size using Endroid library
  */
-function buildQrImage($data, $size)
+function buildQrImage($data, $size = 300)
 {
-    if (!function_exists('imagecreatetruecolor')) {
+    try {
+        // Create QR code - in Endroid QR Code v6.x, size and margin are constructor params
+        $qrCode = new QrCode(
+            data: $data,
+            size: $size,
+            margin: 10
+        );
+
+        // Create writer and get PNG data
+        $writer = new PngWriter();
+        $result = $writer->write($qrCode);
+
+        // Get PNG string and convert to GD image
+        $pngData = $result->getString();
+        $image = imagecreatefromstring($pngData);
+
+        return $image ?: null;
+
+    } catch (Exception $e) {
+        error_log('QR Code generation error: ' . $e->getMessage());
         return null;
     }
-
-    // Render QR to string using phpqrcode
-    ob_start();
-    \QRcode::png($data, null, QR_ECLEVEL_L, 5, 2);
-    $rawPng = ob_get_clean();
-    $qr = imagecreatefromstring($rawPng);
-    if (!$qr) {
-        return null;
-    }
-
-    // Resize to desired square size
-    $target = imagecreatetruecolor($size, $size);
-    imagesavealpha($target, true);
-    $transparent = imagecolorallocatealpha($target, 0, 0, 0, 127);
-    imagefill($target, 0, 0, $transparent);
-    imagecopyresampled(
-        $target,
-        $qr,
-        0,
-        0,
-        0,
-        0,
-        $size,
-        $size,
-        imagesx($qr),
-        imagesy($qr)
-    );
-    // imagedestroy is a no-op in PHP 8+; omit to avoid deprecation notices
-    return $target;
 }
 
 /**
