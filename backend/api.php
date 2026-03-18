@@ -97,7 +97,7 @@ function renderReservationTicket($id)
             return;
         }
 
-        $stmt = $pdo->prepare("SELECT name, table_preference, qr_code FROM reservations WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT name, position, company, table_preference, qr_code FROM reservations WHERE id = ?");
         $stmt->execute([$id]);
         $reservation = $stmt->fetch();
 
@@ -146,16 +146,22 @@ function renderReservationTicket($id)
         $shadowColor = imagecolorallocatealpha($image, 255, 255, 255, 80);
 
         $name = $reservation['name'];
+        $position = $reservation['position'];
+        $company = $reservation['company'];
         $table = 'Table: ' . $reservation['table_preference'];
         $qrData = $reservation['qr_code'];
 
         $nameSize = max(28, (int) ($width * 0.035));
+        $positionSize = max(20, (int) ($width * 0.025));
+        $companySize = max(20, (int) ($width * 0.035));
         $tableSize = max(22, (int) ($width * 0.025));
 
         // Vertical layout: name -> QR -> table
         $nameY = (int) ($height * 0.4);
-        $qrGapTop = (int) ($height * 0.18);
-        $qrGapBottom = (int) ($height * 0.04);
+        $positionY = (int) ($height * 0.47);
+        $companyY = (int) ($height * 0.55);
+        $qrGapTop = (int) ($height * 0.19);
+        $qrGapBottom = (int) ($height * 0.01);
         $tableY = null; // set after QR position is known
 
         if ($canUseTtf) {
@@ -165,9 +171,25 @@ function renderReservationTicket($id)
             drawCenteredGdText($image, 5, $nameY, strtoupper($name), $textColor);
         }
 
+        // Draw position if available
+        if ($canUseTtf && !empty($position)) {
+            drawCenteredTtfText($image, $positionSize, $positionY, $fontPath, $position, $textColor, $shadowColor);
+        } elseif (!empty($position)) {
+            // Fallback to built-in GD font if TTF support is missing
+            drawCenteredGdText($image, 5, $positionY, strtoupper($position), $textColor);
+        }
+
+        // Draw company if available
+        if ($canUseTtf && !empty($company)) {
+            drawCenteredTtfText($image, $companySize, $companyY, $fontPath, $company, $textColor, $shadowColor);
+        } elseif (!empty($company)) {
+            // Fallback to built-in GD font if TTF support is missing
+            drawCenteredGdText($image, 5, $companyY, strtoupper($company), $textColor);
+        }
+
         // Add QR code (uses reservation.qr_code value)
         if (!empty($qrData)) {
-            $qrImage = buildQrImage($qrData, 300);
+            $qrImage = buildQrImage($qrData, 120);
 
             if ($qrImage) {
                 $qrWidth = imagesx($qrImage);

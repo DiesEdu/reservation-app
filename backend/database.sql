@@ -9,6 +9,8 @@ USE reservation_app;
 CREATE TABLE IF NOT EXISTS reservations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    position VARCHAR(255),
+    company VARCHAR(255),
     email VARCHAR(255) NOT NULL,
     phone VARCHAR(50) NOT NULL,
     date DATE NOT NULL,
@@ -45,12 +47,12 @@ CREATE TABLE IF NOT EXISTS reservation_verifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Insert sample data
-INSERT INTO reservations (name, email, phone, date, time, guests, table_preference, status, special_requests, created_at) VALUES
-('Sarah Johnson', 'sarah.j@email.com', '+1 (555) 123-4567', '2026-03-20', '19:00:00', 4, 'Window Table', 'confirmed', 'Anniversary dinner, please prepare a small cake', '2026-03-15 10:00:00'),
-('Michael Chen', 'mchen@email.com', '+1 (555) 987-6543', '2026-03-21', '20:30:00', 2, 'VIP Booth', 'pending', 'Vegetarian menu options', '2026-03-15 11:30:00'),
-('Emma Williams', 'emma.w@email.com', '+1 (555) 456-7890', '2026-03-22', '18:00:00', 6, 'Private Room A', 'confirmed', 'Birthday celebration, need high chair for toddler', '2026-03-14 09:00:00'),
-('James Rodriguez', 'j.rodriguez@email.com', '+1 (555) 234-5678', '2026-03-19', '19:30:00', 3, 'Window Table', 'cancelled', '', '2026-03-14 14:00:00'),
-('Lisa Thompson', 'lisa.t@email.com', '+1 (555) 876-5432', '2026-03-23', '21:00:00', 2, 'Champagne Bar', 'confirmed', 'Wine pairing menu preferred', '2026-03-13 16:00:00');
+INSERT INTO reservations (name, position, company, email, phone, date, time, guests, table_preference, status, special_requests, created_at) VALUES
+('Sarah Johnson', 'Chief Executive Officer', 'Bank Central Asia', 'sarah.j@email.com', '+1 (555) 123-4567', '2026-03-20', '19:00:00', 4, 'Window Table', 'confirmed', 'Anniversary dinner, please prepare a small cake', '2026-03-15 10:00:00'),
+('Michael Chen', 'Business Development Manager', 'Technology Company', 'mchen@email.com', '+1 (555) 987-6543', '2026-03-21', '20:30:00', 2, 'VIP Booth', 'pending', 'Vegetarian menu options', '2026-03-15 11:30:00'),
+('Emma Williams', 'Manager', 'PT. Personal', 'emma.w@email.com', '+1 (555) 456-7890', '2026-03-22', '18:00:00', 6, 'Private Room A', 'confirmed', 'Birthday celebration, need high chair for toddler', '2026-03-14 09:00:00'),
+('James Rodriguez', 'Engineer', 'PT Batu Bara', 'j.rodriguez@email.com', '+1 (555) 234-5678', '2026-03-19', '19:30:00', 3, 'Window Table', 'cancelled', '', '2026-03-14 14:00:00'),
+('Lisa Thompson', 'Management Trainee', 'Company XYZ', 'lisa.t@email.com', '+1 (555) 876-5432', '2026-03-23', '21:00:00', 2, 'Champagne Bar', 'confirmed', 'Wine pairing menu preferred', '2026-03-13 16:00:00');
 
 -- Update sample reservations with QR codes
 UPDATE reservations SET qr_code = CONCAT('RES-', id, '-', UNIX_TIMESTAMP(created_at)) WHERE qr_code IS NULL;
