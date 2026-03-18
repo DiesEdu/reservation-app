@@ -18,6 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/vendor/autoload.php';
+
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 // Get the request method and parse the URL
 $method = $_SERVER['REQUEST_METHOD'];
@@ -57,6 +62,9 @@ if ($path === '/reservations' || $path === '/reservations/') {
 } elseif ($path === '/reservations/verify' && $method === 'POST') {
     // Verify reservation with QR code
     verifyReservation();
+} elseif ($path === '/reservations/import' && $method === 'POST') {
+    // Bulk import reservations from Excel
+    importReservationsFromExcel();
 } else {
     http_response_code(404);
     echo json_encode(['success' => false, 'error' => 'Endpoint not found']);
@@ -258,6 +266,196 @@ function createReservation()
         echo json_encode([
             'success' => false,
             'error' => 'Failed to create reservation: ' . $e->getMessage()
+        ]);
+    }
+}
+
+/**
+ * POST - Import reservations from Excel (.xlsx)
+ */
+function importReservationsFromExcel()
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    // Validate uploaded file
+    if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'error' => 'File upload failed or no file provided'
+        ]);
+        return;
+    }
+
+    $file = $_FILES['file'];
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+    if ($extension !== 'xlsx') {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Only .xlsx files are supported'
+        ]);
+        return;
+    }
+
+    $tmpPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('reservations_', true) . '.xlsx';
+
+    if (!move_uploaded_file($file['tmp_name'], $tmpPath)) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to store uploaded file'
+        ]);
+        return;
+    }
+
+    try {
+        $spreadsheet = IOFactory::load($tmpPath);
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $highestColumnIndex = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+        $highestRow = $sheet->getHighestDataRow();
+
+        // Build header map from the first row
+        $headerMap = [];
+        for ($col = 1; $col <= $highestColumnIndex; $col++) {
+            $columnLetter = Coordinate::stringFromColumnIndex($col);
+            $value = strtolower(trim((string) $sheet->getCell($columnLetter . '1')->getValue()));
+            if (!empty($value)) {
+                $headerMap[$col] = $value;
+            }
+        }
+
+        $requiredHeaders = ['name', 'email', 'phone', 'table_preference'];
+        $missingHeaders = array_diff($requiredHeaders, array_values($headerMap));
+        if (!empty($missingHeaders)) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Missing required columns: ' . implode(', ', $missingHeaders)
+            ]);
+            unlink($tmpPath);
+            return;
+        }
+
+        $inserted = 0;
+        $errors = [];
+
+        $pdo->beginTransaction();
+
+        $insertStmt = $pdo->prepare("
+            INSERT INTO reservations
+            (name, email, phone, date, time, guests, table_preference, status, special_requests)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+        ");
+
+        $qrStmt = $pdo->prepare("UPDATE reservations SET qr_code = ? WHERE id = ?");
+
+        for ($row = 2; $row <= $highestRow; $row++) {
+            $rowValues = [];
+
+            foreach ($headerMap as $colIndex => $field) {
+                $columnLetter = Coordinate::stringFromColumnIndex($colIndex);
+                $cell = $sheet->getCell($columnLetter . $row);
+                $value = $cell->getValue();
+                if ($value instanceof \PhpOffice\PhpSpreadsheet\RichText\RichText) {
+                    $value = $value->getPlainText();
+                }
+                $rowValues[$field] = is_string($value) ? trim($value) : $value;
+            }
+
+            // Skip completely empty rows
+            if (
+                (empty($rowValues['name'])) &&
+                (empty($rowValues['email'])) &&
+                (empty($rowValues['phone'])) &&
+                (empty($rowValues['table_preference']))
+            ) {
+                continue;
+            }
+
+            $name = $rowValues['name'] ?? '';
+            $email = $rowValues['email'] ?? '';
+            $phone = $rowValues['phone'] ?? '';
+            $tablePreference = $rowValues['table_preference'] ?? ($rowValues['table'] ?? '');
+
+            if (!$name || !$email || !$phone || !$tablePreference) {
+                $errors[] = "Row {$row}: missing required fields";
+                continue;
+            }
+
+            // Optional columns with sensible defaults
+            $dateValue = $rowValues['date'] ?? date('Y-m-d');
+            if (is_numeric($dateValue)) {
+                $dateValue = ExcelDate::excelToDateTimeObject($dateValue)->format('Y-m-d');
+            } elseif (!empty($dateValue)) {
+                $timestamp = strtotime($dateValue);
+                $dateValue = $timestamp ? date('Y-m-d', $timestamp) : date('Y-m-d');
+            } else {
+                $dateValue = date('Y-m-d');
+            }
+
+            $timeValue = $rowValues['time'] ?? '00:00:00';
+            if (is_numeric($timeValue)) {
+                $timeValue = ExcelDate::excelToDateTimeObject($timeValue)->format('H:i:s');
+            } elseif (!empty($timeValue)) {
+                $timestamp = strtotime($timeValue);
+                $timeValue = $timestamp ? date('H:i:s', $timestamp) : '00:00:00';
+            } else {
+                $timeValue = '00:00:00';
+            }
+
+            $guests = isset($rowValues['guests']) && $rowValues['guests'] !== '' ? (int) $rowValues['guests'] : 2;
+            $specialRequests = $rowValues['special_requests'] ?? '';
+
+            $insertStmt->execute([
+                $name,
+                $email,
+                $phone,
+                $dateValue,
+                $timeValue,
+                $guests,
+                $tablePreference,
+                $specialRequests
+            ]);
+
+            $newId = (int) $pdo->lastInsertId();
+            $qrCode = 'RES-' . $newId . '-' . time();
+            $qrStmt->execute([$qrCode, $newId]);
+
+            $inserted++;
+        }
+
+        $pdo->commit();
+        unlink($tmpPath);
+
+        $response = [
+            'success' => true,
+            'message' => 'Import completed',
+            'inserted' => $inserted
+        ];
+
+        if (!empty($errors)) {
+            $response['partial'] = true;
+            $response['errors'] = $errors;
+        }
+
+        echo json_encode($response);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        if (file_exists($tmpPath)) {
+            unlink($tmpPath);
+        }
+
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to import: ' . $e->getMessage()
         ]);
     }
 }
