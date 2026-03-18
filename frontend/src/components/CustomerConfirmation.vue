@@ -81,6 +81,14 @@
 
         <!-- Reservation Details Section -->
         <div v-else class="details-section">
+          <!-- Countdown Timer -->
+          <div v-if="countdown > 0" class="countdown-timer">
+            <i class="bi bi-clock-history"></i>
+            <span
+              >Returning to scan in <strong>{{ countdown }}</strong> seconds</span
+            >
+          </div>
+
           <div class="success-animation">
             <div class="checkmark-circle" :class="{ 'already-verified': alreadyVerified }">
               <i :class="alreadyVerified ? 'bi bi-exclamation-lg' : 'bi bi-check-lg'"></i>
@@ -218,7 +226,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted, onMounted } from 'vue'
+import { ref, computed, onUnmounted, onMounted, nextTick } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
 
 // API Base URL
@@ -234,6 +242,8 @@ const loading = ref(false)
 const copied = ref(false)
 const alreadyVerified = ref(false)
 const verifiedAt = ref(null)
+const countdown = ref(0)
+let countdownTimer = null
 let html5QrCode = null
 
 // Computed
@@ -353,6 +363,9 @@ const verifyReservation = async (code) => {
     reservationCode.value = code
     manualCode.value = ''
 
+    // Start countdown timer to return to scan screen after 5 seconds
+    startCountdown()
+
     // Check if reservation status is confirmed
     if (result.data.status !== 'confirmed') {
       let statusMessage = ''
@@ -384,12 +397,25 @@ const verifyReservation = async (code) => {
 }
 
 const resetScanner = () => {
+  // Clear countdown timer if active
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+  countdown.value = 0
   reservationData.value = null
   reservationCode.value = ''
   errorMessage.value = ''
   manualCode.value = ''
   alreadyVerified.value = false
   verifiedAt.value = null
+
+  // Focus the manual code input when returning to scan screen
+  nextTick(() => {
+    if (manualCodeInput.value) {
+      manualCodeInput.value.focus()
+    }
+  })
 }
 
 const formatDate = (dateString) => {
@@ -438,6 +464,17 @@ const particleStyle = () => ({
   opacity: Math.random() * 0.5 + 0.1,
 })
 
+const startCountdown = () => {
+  countdown.value = 5
+  countdownTimer = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      clearInterval(countdownTimer)
+      resetScanner()
+    }
+  }, 1000)
+}
+
 const manualCodeInput = ref(null)
 
 // Cleanup
@@ -451,6 +488,9 @@ onUnmounted(() => {
   if (html5QrCode && scannerActive.value) {
     stopScanner()
   }
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+  }
 })
 </script>
 
@@ -463,6 +503,33 @@ onUnmounted(() => {
   position: relative;
   overflow-x: hidden;
   padding: 2rem 0;
+}
+
+.countdown-timer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #d4af37 0%, #aa8a2e 100%);
+  color: #0a0a0a;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+}
+
+.countdown-timer i {
+  font-size: 1.25rem;
+}
+
+.countdown-timer strong {
+  font-size: 1.25rem;
+  min-width: 1.5rem;
+  text-align: center;
 }
 
 /* Background Animation */
