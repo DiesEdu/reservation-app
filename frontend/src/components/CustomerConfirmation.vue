@@ -54,6 +54,7 @@
                 <div class="input-group">
                   <i class="bi bi-hash"></i>
                   <input
+                    ref="manualCodeInput"
                     v-model="manualCode"
                     type="text"
                     placeholder="Enter reservation code manually"
@@ -217,7 +218,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, onMounted } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
 
 // API Base URL
@@ -372,6 +373,11 @@ const verifyReservation = async (code) => {
   } catch (error) {
     console.error('Verification error:', error)
     errorMessage.value = error.message || 'Failed to verify reservation. Please try again.'
+    // Clear and focus the input field when there's an error
+    manualCode.value = ''
+    if (manualCodeInput.value) {
+      manualCodeInput.value.focus()
+    }
   } finally {
     loading.value = false
   }
@@ -432,7 +438,15 @@ const particleStyle = () => ({
   opacity: Math.random() * 0.5 + 0.1,
 })
 
+const manualCodeInput = ref(null)
+
 // Cleanup
+onMounted(() => {
+  // Auto-focus the manual code input when component mounts
+  if (manualCodeInput.value) {
+    manualCodeInput.value.focus()
+  }
+})
 onUnmounted(() => {
   if (html5QrCode && scannerActive.value) {
     stopScanner()
