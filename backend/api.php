@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/vendor/phpqrcode/qrlib.php';
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
@@ -43,6 +44,9 @@ if ($path === '/reservations' || $path === '/reservations/') {
         http_response_code(405);
         echo json_encode(['success' => false, 'error' => 'Method not allowed']);
     }
+} elseif (preg_match('#^/reservations/(\d+)/ticket$#', $path, $matches) && $method === 'GET') {
+    // Render reservation ticket as PNG
+    renderReservationTicket((int) $matches[1]);
 } elseif (preg_match('#^/reservations/(\d+)$#', $path, $matches)) {
     // Single reservation: GET, PUT, DELETE
     $id = (int) $matches[1];
@@ -68,6 +72,210 @@ if ($path === '/reservations' || $path === '/reservations/') {
 } else {
     http_response_code(404);
     echo json_encode(['success' => false, 'error' => 'Endpoint not found']);
+}
+
+/**
+ * GET reservation ticket image
+ */
+function renderReservationTicket($id)
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    try {
+        $stmt = $pdo->prepare("SELECT name, table_preference, qr_code FROM reservations WHERE id = ?");
+        $stmt->execute([$id]);
+        $reservation = $stmt->fetch();
+
+        if (!$reservation) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'error' => 'Reservation not found'
+            ]);
+            return;
+        }
+
+        $templatePath = __DIR__ . '/templates/Ticket_A5.png';
+        if (!file_exists($templatePath)) {
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'error' => 'Ticket template not found'
+            ]);
+            return;
+        }
+
+        $image = imagecreatefrompng($templatePath);
+        if (!$image) {
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to load ticket template'
+            ]);
+            return;
+        }
+
+        imagealphablending($image, true);
+        imagesavealpha($image, true);
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        $fontPath = resolveTicketFont();
+        $canUseTtf = $fontPath && function_exists('imagettftext');
+
+        $textColor = imagecolorallocate($image, 20, 20, 20);
+        $shadowColor = imagecolorallocatealpha($image, 255, 255, 255, 80);
+
+        $name = $reservation['name'];
+        $table = 'Table: ' . $reservation['table_preference'];
+        $qrData = $reservation['qr_code'];
+
+        $nameSize = max(28, (int) ($width * 0.035));
+        $tableSize = max(22, (int) ($width * 0.025));
+
+        // Vertical layout: name -> QR -> table
+        $nameY = (int) ($height * 0.4);
+        $qrGapTop = (int) ($height * 0.18);
+        $qrGapBottom = (int) ($height * 0.04);
+        $tableY = null; // set after QR position is known
+
+        if ($canUseTtf) {
+            drawCenteredTtfText($image, $nameSize, $nameY, $fontPath, $name, $textColor, $shadowColor);
+        } else {
+            // Fallback to built-in GD font if TTF support is missing
+            drawCenteredGdText($image, 5, $nameY, strtoupper($name), $textColor);
+        }
+
+        // Add QR code (uses reservation.qr_code value)
+        if (!empty($qrData)) {
+            $qrSize = (int) ($width * 0.18); // scale relative to template width
+            $qrImage = buildQrImage($qrData, $qrSize);
+            if ($qrImage) {
+                // Centered horizontally; positioned between name and table
+                $qrX = (int) (($width - $qrSize) / 2);
+                $qrY = $nameY + $qrGapTop;
+                imagecopy($image, $qrImage, $qrX, $qrY, 0, 0, imagesx($qrImage), imagesy($qrImage));
+            }
+            // Set table Y relative to QR bottom
+            $tableY = $qrY + $qrSize + $qrGapBottom;
+        }
+
+        // Draw table text after QR placement
+        if ($tableY === null) {
+            // Fallback if no QR: place below name with a gap
+            $tableY = $nameY + (int) ($height * 0.12);
+        }
+
+        if ($canUseTtf) {
+            drawCenteredTtfText($image, $tableSize, $tableY, $fontPath, $table, $textColor, $shadowColor);
+        } else {
+            drawCenteredGdText($image, 4, $tableY, strtoupper($table), $textColor);
+        }
+
+        header('Content-Type: image/png');
+        header('Content-Disposition: inline; filename=\"ticket-' . $id . '.png\"');
+        imagepng($image);
+        exit();
+    } catch (PDOException $e) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to generate ticket: ' . $e->getMessage()
+        ]);
+    }
+}
+
+/**
+ * Try to find an available TTF font on the host
+ */
+function resolveTicketFont()
+{
+    $candidates = [
+        'C:\\\\Windows\\\\Fonts\\\\arial.ttf',
+        'C:\\\\Windows\\\\Fonts\\\\arialbd.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+    ];
+
+    foreach ($candidates as $font) {
+        if (file_exists($font)) {
+            return $font;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Draw centered TTF text with a subtle shadow
+ */
+function drawCenteredTtfText($image, $fontSize, $y, $fontPath, $text, $color, $shadowColor)
+{
+    $width = imagesx($image);
+    $angle = 0;
+    $bbox = imagettfbbox($fontSize, $angle, $fontPath, $text);
+    $textWidth = $bbox[2] - $bbox[0];
+    $x = (int) (($width - $textWidth) / 2);
+
+    // Shadow for readability on busy backgrounds
+    imagettftext($image, $fontSize, $angle, $x + 2, $y + 2, $shadowColor, $fontPath, $text);
+    imagettftext($image, $fontSize, $angle, $x, $y, $color, $fontPath, $text);
+}
+
+/**
+ * Draw centered GD text fallback (no TTF)
+ */
+function drawCenteredGdText($image, $font, $y, $text, $color)
+{
+    $width = imagesx($image);
+    $textWidth = imagefontwidth($font) * strlen($text);
+    $x = (int) (($width - $textWidth) / 2);
+    imagestring($image, $font, $x, $y - imagefontheight($font), $text, $color);
+}
+
+/**
+ * Build a GD image for a QR code at requested size
+ */
+function buildQrImage($data, $size)
+{
+    if (!function_exists('imagecreatetruecolor')) {
+        return null;
+    }
+
+    // Render QR to string using phpqrcode
+    ob_start();
+    \QRcode::png($data, null, QR_ECLEVEL_L, 5, 2);
+    $rawPng = ob_get_clean();
+    $qr = imagecreatefromstring($rawPng);
+    if (!$qr) {
+        return null;
+    }
+
+    // Resize to desired square size
+    $target = imagecreatetruecolor($size, $size);
+    imagesavealpha($target, true);
+    $transparent = imagecolorallocatealpha($target, 0, 0, 0, 127);
+    imagefill($target, 0, 0, $transparent);
+    imagecopyresampled(
+        $target,
+        $qr,
+        0,
+        0,
+        0,
+        0,
+        $size,
+        $size,
+        imagesx($qr),
+        imagesy($qr)
+    );
+    // imagedestroy is a no-op in PHP 8+; omit to avoid deprecation notices
+    return $target;
 }
 
 /**
