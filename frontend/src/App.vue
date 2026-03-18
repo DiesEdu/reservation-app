@@ -8,12 +8,12 @@
       </div>
     </div>
 
-    <Navbar v-if="$route.name === 'home'" />
+    <Navbar v-if="showNavbar" />
 
     <router-view />
 
     <!-- Footer -->
-    <footer v-if="$route.name === 'home'" class="luxury-footer">
+    <footer v-if="showFooter" class="luxury-footer">
       <div class="container">
         <div class="footer-content">
           <div class="footer-brand">
@@ -29,7 +29,19 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import Navbar from './components/Navbar.vue'
+
+const route = useRoute()
+
+const showNavbar = computed(() => {
+  return ['home', 'login', 'register'].includes(route.name)
+})
+
+const showFooter = computed(() => {
+  return route.name === 'home'
+})
 
 const particleStyle = () => ({
   left: `${Math.random() * 100}%`,

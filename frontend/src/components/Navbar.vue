@@ -1,7 +1,7 @@
 <template>
   <nav class="navbar navbar-expand-lg fixed-top">
     <div class="container">
-      <a class="navbar-brand d-flex align-items-center" href="#">
+      <router-link class="navbar-brand d-flex align-items-center" to="/">
         <div class="logo-icon me-3">
           <i class="bi bi-gem"></i>
         </div>
@@ -9,7 +9,7 @@
           <span class="brand-main">RESONANZ</span>
           <span class="brand-sub">RESERVE</span>
         </div>
-      </a>
+      </router-link>
       <button
         class="navbar-toggler border-0"
         type="button"
@@ -21,16 +21,10 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto align-items-center">
           <li class="nav-item">
-            <a class="nav-link active" href="#">
-              <span class="nav-text">Dashboard</span>
+            <router-link class="nav-link" to="/">
+              <span class="nav-text">Home</span>
               <span class="nav-line"></span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">
-              <span class="nav-text">Reservations</span>
-              <span class="nav-line"></span>
-            </a>
+            </router-link>
           </li>
           <li class="nav-item">
             <router-link class="nav-link" to="/analytics">
@@ -39,15 +33,67 @@
             </router-link>
           </li>
           <li class="nav-item ms-lg-3">
-            <button class="btn btn-gold btn-sm">
-              <i class="bi bi-person-circle me-2"></i>Admin
-            </button>
+            <!-- If not authenticated, show login button -->
+            <template v-if="!isAuthenticated">
+              <router-link to="/login" class="btn btn-gold btn-sm">
+                <i class="bi bi-person-circle me-2"></i>Login
+              </router-link>
+            </template>
+            <!-- If authenticated, show user dropdown -->
+            <template v-else>
+              <div class="dropdown">
+                <button
+                  class="btn btn-gold btn-sm dropdown-toggle"
+                  type="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <i class="bi bi-person-circle me-2"></i>{{ userName }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li>
+                    <span class="dropdown-item-text user-email">{{ userEmail }}</span>
+                  </li>
+                  <li><hr class="dropdown-divider" /></li>
+                  <li>
+                    <router-link to="/analytics" class="dropdown-item">
+                      <i class="bi bi-bar-chart me-2"></i>Analytics
+                    </router-link>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="#" @click.prevent="handleLogout">
+                      <i class="bi bi-box-arrow-right me-2"></i>Logout
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </template>
           </li>
         </ul>
       </div>
     </div>
   </nav>
 </template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+// Computed properties
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+const userName = computed(() => authStore.userName)
+const userEmail = computed(() => authStore.userEmail)
+
+// Handle logout
+const handleLogout = async () => {
+  await authStore.logout()
+  router.push('/login')
+}
+</script>
 
 <style scoped>
 .navbar {
@@ -165,5 +211,39 @@
   transform: translateY(-2px);
   box-shadow: 0 6px 25px rgba(212, 175, 55, 0.5);
   color: #0a0a0a;
+}
+
+/* Dropdown Styles */
+.btn-gold.dropdown-toggle::after {
+  margin-left: 0.5rem;
+}
+
+.dropdown-menu {
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.dropdown-item {
+  color: #f4e5c2;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background: rgba(212, 175, 55, 0.1);
+  color: #d4af37;
+}
+
+.dropdown-divider {
+  border-color: rgba(212, 175, 55, 0.2);
+}
+
+.user-email {
+  color: rgba(244, 229, 194, 0.6);
+  font-size: 0.85rem;
 }
 </style>
