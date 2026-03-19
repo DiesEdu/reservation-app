@@ -114,8 +114,8 @@ function createBlastInfo($reservationId)
             return;
         }
 
-        // Send verification email
-        $sent = sendInformationEmail($reservation['email'], $reservation['name']);
+        // Send verification email with ticket attached
+        $sent = sendInformationEmail($reservation['email'], $reservation['name'], $reservationId);
 
         if (!$sent) {
             http_response_code(500);
@@ -142,17 +142,198 @@ function createBlastInfo($reservationId)
     }
 }
 
-function sendInformationEmail($email, $username)
+function sendInformationEmail($email, $username, $reservationId)
 {
     $subject = "Premiere Dinner Ticket - {$username}";
 
+    // Generate ticket image for this reservation
+    $ticketImage = generateTicketImage($reservationId);
+
     $message = "
     Hello {$username},
-    I just try to say hello :D
+    
+    Thank you for your reservation! Please find your ticket attached to this email.
+    
+    Best regards,
+    The Resonanz Team
     ";
 
     $headers = "From: admin@reserve.resonanz.id";
+
+    // If we have a ticket image, attach it
+    if ($ticketImage) {
+        return sendEmailWithAttachment($email, $subject, $message, $headers, $ticketImage, "ticket-{$reservationId}.png");
+    }
+
     return mail($email, $subject, $message, $headers);
+}
+
+/**
+ * Generate ticket image and return as string
+ */
+function generateTicketImage($reservationId)
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    try {
+        // Add validation for $id
+        if (!is_numeric($reservationId) || $reservationId <= 0) {
+            return null;
+        }
+
+        $stmt = $pdo->prepare("SELECT name, position, company, table_preference, qr_code FROM reservations WHERE id = ?");
+        $stmt->execute([$reservationId]);
+        $reservation = $stmt->fetch();
+
+        if (!$reservation) {
+            return null;
+        }
+
+        $templatePath = __DIR__ . '/../templates/Ticket_A5.png';
+        if (!file_exists($templatePath)) {
+            return null;
+        }
+
+        $image = imagecreatefrompng($templatePath);
+        if (!$image) {
+            return null;
+        }
+
+        imagealphablending($image, true);
+        imagesavealpha($image, true);
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        $fontPath = resolveTicketFont();
+        $canUseTtf = $fontPath && function_exists('imagettftext');
+
+        $textColor = imagecolorallocate($image, 20, 20, 20);
+        $shadowColor = imagecolorallocatealpha($image, 255, 255, 255, 80);
+
+        $name = $reservation['name'];
+        $position = $reservation['position'];
+        $company = $reservation['company'];
+        $table = 'Table: ' . $reservation['table_preference'];
+        $qrData = $reservation['qr_code'];
+
+        $nameSize = max(28, (int) ($width * 0.035));
+        $positionSize = max(20, (int) ($width * 0.025));
+        $companySize = max(20, (int) ($width * 0.035));
+        $tableSize = max(22, (int) ($width * 0.025));
+
+        // Vertical layout: name -> QR -> table
+        $nameY = (int) ($height * 0.4);
+        $positionY = (int) ($height * 0.47);
+        $companyY = (int) ($height * 0.55);
+        $qrGapTop = (int) ($height * 0.19);
+        $qrGapBottom = (int) ($height * 0.01);
+        $tableY = null; // set after QR position is known
+
+        if ($canUseTtf) {
+            drawCenteredTtfText($image, $nameSize, $nameY, $fontPath, $name, $textColor, $shadowColor);
+        } else {
+            // Fallback to built-in GD font if TTF support is missing
+            drawCenteredGdText($image, 5, $nameY, strtoupper($name), $textColor);
+        }
+
+        // Draw position if available
+        if ($canUseTtf && !empty($position)) {
+            drawCenteredTtfText($image, $positionSize, $positionY, $fontPath, $position, $textColor, $shadowColor);
+        } elseif (!empty($position)) {
+            // Fallback to built-in GD font if TTF support is missing
+            drawCenteredGdText($image, 5, $positionY, strtoupper($position), $textColor);
+        }
+
+        // Draw company if available
+        if ($canUseTtf && !empty($company)) {
+            drawCenteredTtfText($image, $companySize, $companyY, $fontPath, $company, $textColor, $shadowColor);
+        } elseif (!empty($company)) {
+            // Fallback to built-in GD font if TTF support is missing
+            drawCenteredGdText($image, 5, $companyY, strtoupper($company), $textColor);
+        }
+
+        // Add QR code (uses reservation.qr_code value)
+        if (!empty($qrData)) {
+            $qrImage = buildQrImage($qrData, 120);
+
+            if ($qrImage) {
+                $qrWidth = imagesx($qrImage);
+                $qrHeight = imagesy($qrImage);
+                $qrX = (int) (($width - $qrWidth) / 2);
+                $qrY = $nameY + $qrGapTop;
+
+                imagecopy(
+                    $image,
+                    $qrImage,
+                    $qrX,
+                    $qrY,
+                    0,
+                    0,
+                    $qrWidth,
+                    $qrHeight
+                );
+
+                // Set table Y relative to QR bottom
+                $tableY = $qrY + $qrHeight + $qrGapBottom;
+            } else {
+                error_log("Failed to generate QR code for reservation ID: " . $reservationId);
+            }
+        }
+
+        // Draw table text after QR placement
+        if ($tableY === null) {
+            // Fallback if no QR: place below name with a gap
+            $tableY = $nameY + (int) ($height * 0.12);
+        }
+
+        if ($canUseTtf) {
+            drawCenteredTtfText($image, $tableSize, $tableY, $fontPath, $table, $textColor, $shadowColor);
+        } else {
+            drawCenteredGdText($image, 4, $tableY, strtoupper($table), $textColor);
+        }
+
+        // Capture output to string instead of direct output
+        ob_start();
+        imagepng($image);
+        $imageData = ob_get_clean();
+        imagedestroy($image);
+
+        return $imageData;
+
+    } catch (Exception $e) {
+        error_log('generateTicketImage error: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Send email with attachment
+ */
+function sendEmailWithAttachment($to, $subject, $message, $headers, $attachmentData, $filename)
+{
+    // Generate a unique boundary for the email
+    $boundary = md5(uniqid(time()));
+
+    // Prepare headers
+    $headers .= "\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
+
+    // Build the email body with attachment
+    $body = "--{$boundary}\r\n";
+    $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    $body .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+    $body .= $message . "\r\n";
+    $body .= "--{$boundary}\r\n";
+    $body .= "Content-Type: image/png; name=\"{$filename}\"\r\n";
+    $body .= "Content-Transfer-Encoding: base64\r\n";
+    $body .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n\r\n";
+    $body .= chunk_split(base64_encode($attachmentData)) . "\r\n";
+    $body .= "--{$boundary}--\r\n";
+
+    return mail($to, $subject, $body, $headers);
 }
 
 function renderReservationTicket($id)
