@@ -1,7 +1,21 @@
 <template>
   <div class="customer-confirmation">
+    <!-- Access Denied Message -->
+    <div v-if="accessDenied" class="access-denied">
+      <div class="access-denied-card">
+        <i class="bi bi-shield-exclamation"></i>
+        <h2>Access Restricted</h2>
+        <p>You don't have permission to access this page.</p>
+        <p class="access-note">Only admin and staff roles can access the confirmation page.</p>
+        <button @click="$router.push('/')" class="btn-home">
+          <i class="bi bi-house"></i>
+          <span>Go to Home</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Background Animation -->
-    <div class="bg-animation">
+    <div v-else class="bg-animation">
       <div class="bg-gradient"></div>
       <div class="particles-container">
         <span v-for="n in 15" :key="n" :style="particleStyle(n)"></span>
@@ -228,9 +242,25 @@
 <script setup>
 import { ref, computed, onUnmounted, onMounted, nextTick } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
+import { useAuthStore } from '@/stores/auth'
 
 // API Base URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+
+// Auth store
+const authStore = useAuthStore()
+
+// Check access permission - only admin and staff can access
+const canAccess = computed(() => authStore.canAccessConfirmation)
+const accessDenied = ref(false)
+
+// Redirect if no access
+onMounted(async () => {
+  await authStore.initializeAuth()
+  if (!canAccess.value) {
+    accessDenied.value = true
+  }
+})
 
 // State
 const scannerActive = ref(false)
@@ -503,6 +533,69 @@ onUnmounted(() => {
   position: relative;
   overflow-x: hidden;
   padding: 2rem 0;
+}
+
+/* Access Denied Styles */
+.access-denied {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.access-denied-card {
+  background: linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(20, 20, 20, 0.95));
+  border: 1px solid rgba(244, 229, 194, 0.1);
+  border-radius: 16px;
+  padding: 3rem;
+  text-align: center;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.access-denied-card i {
+  font-size: 4rem;
+  color: #d4a574;
+  margin-bottom: 1.5rem;
+}
+
+.access-denied-card h2 {
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+  color: #f4e5c2;
+}
+
+.access-denied-card p {
+  color: #a0a0a0;
+  margin-bottom: 0.5rem;
+}
+
+.access-denied-card .access-note {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.btn-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #d4a574, #c49464);
+  color: #0a0a0a;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.btn-home:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 165, 116, 0.3);
 }
 
 .countdown-timer {

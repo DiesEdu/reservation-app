@@ -15,7 +15,10 @@ export const useAuthStore = defineStore('auth', () => {
   // Computed
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
-  const isStaff = computed(() => user.value?.role === 'staff' || user.value?.role === 'admin')
+  const isStaff = computed(() => user.value?.role === 'staff')
+  const canAccessConfirmation = computed(
+    () => user.value?.role === 'admin' || user.value?.role === 'staff',
+  )
   const userName = computed(() => user.value?.name || 'Guest')
   const userEmail = computed(() => user.value?.email || '')
 
@@ -38,7 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
           email: userData.email,
           password: userData.password,
           name: userData.name,
-          role: userData.role || 'customer',
+          role: userData.role || 'user',
         }),
       })
 
@@ -312,6 +315,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     isStaff,
+    canAccessConfirmation,
     userName,
     userEmail,
 

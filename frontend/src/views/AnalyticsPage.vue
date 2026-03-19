@@ -1,299 +1,574 @@
 <template>
   <div class="analytics-page">
-    <!-- Header -->
-    <header class="analytics-header">
-      <div class="container">
-        <div class="header-content">
-          <div class="header-text">
-            <h1 class="page-title">
-              <i class="bi bi-graph-up-arrow"></i>
-              Analytics
-            </h1>
-            <p class="page-subtitle">Insights and performance metrics</p>
-          </div>
-          <div class="header-actions">
-            <select v-model="timeFilter" class="filter-select">
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-            </select>
+    <!-- Access Denied Message -->
+    <div v-if="accessDenied" class="access-denied-container">
+      <div class="access-denied-card">
+        <i class="bi bi-shield-exclamation"></i>
+        <h2>Access Restricted</h2>
+        <p>You don't have permission to access this page.</p>
+        <p class="access-note">Only admin and staff roles can access the analytics page.</p>
+        <button @click="$router.push('/')" class="btn-home">
+          <i class="bi bi-house"></i>
+          <span>Go to Home</span>
+        </button>
+      </div>
+    </div>
+
+    <div v-else class="analytics-page-content">
+      <!-- Header -->
+      <header class="analytics-header">
+        <div class="container">
+          <div class="header-content">
+            <div class="header-text">
+              <h1 class="page-title">
+                <i class="bi bi-graph-up-arrow"></i>
+                Analytics
+              </h1>
+              <p class="page-subtitle">Insights and performance metrics</p>
+            </div>
+            <div class="header-actions">
+              <select v-model="timeFilter" class="filter-select">
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <main class="analytics-content">
-      <div class="container">
-        <!-- Summary Stats -->
-        <section class="summary-section">
-          <div class="stats-grid">
-            <div
-              v-for="(stat, index) in summaryStats"
-              :key="stat.label"
-              class="stat-card"
-              :style="{ animationDelay: `${index * 0.1}s` }"
-            >
-              <div class="stat-icon" :class="stat.color">
-                <i :class="stat.icon"></i>
-              </div>
-              <div class="stat-details">
-                <div class="stat-value">{{ stat.value }}</div>
-                <div class="stat-label">{{ stat.label }}</div>
-                <div class="stat-trend" :class="stat.trendClass" v-if="stat.trend">
-                  <i :class="stat.trendIcon"></i>
-                  {{ stat.trend }}
+      <main class="analytics-content">
+        <div class="container">
+          <!-- Summary Stats -->
+          <section class="summary-section">
+            <div class="stats-grid">
+              <div
+                v-for="(stat, index) in summaryStats"
+                :key="stat.label"
+                class="stat-card"
+                :style="{ animationDelay: `${index * 0.1}s` }"
+              >
+                <div class="stat-icon" :class="stat.color">
+                  <i :class="stat.icon"></i>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Charts Row -->
-        <section class="charts-section">
-          <div class="row g-4">
-            <!-- Status Distribution -->
-            <div class="col-lg-4">
-              <div class="chart-card">
-                <div class="chart-header">
-                  <h3 class="chart-title">Reservation Status</h3>
-                </div>
-                <div class="chart-body">
-                  <div class="donut-chart">
-                    <svg viewBox="0 0 100 100" class="donut">
-                      <circle
-                        v-for="(segment, index) in statusSegments"
-                        :key="segment.label"
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="none"
-                        :stroke="segment.color"
-                        stroke-width="15"
-                        :stroke-dasharray="segment.dashArray"
-                        :stroke-dashoffset="segment.dashOffset"
-                        :style="{ animationDelay: `${index * 0.2}s` }"
-                      />
-                    </svg>
-                    <div class="donut-center">
-                      <span class="donut-total">{{ filteredReservations.length }}</span>
-                      <span class="donut-label">Total</span>
-                    </div>
-                  </div>
-                  <div class="chart-legend">
-                    <div v-for="segment in statusSegments" :key="segment.label" class="legend-item">
-                      <span class="legend-dot" :style="{ background: segment.color }"></span>
-                      <span class="legend-label">{{ segment.label }}</span>
-                      <span class="legend-value">{{ segment.count }}</span>
-                      <span class="legend-percent">{{ segment.percent }}%</span>
-                    </div>
+                <div class="stat-details">
+                  <div class="stat-value">{{ stat.value }}</div>
+                  <div class="stat-label">{{ stat.label }}</div>
+                  <div class="stat-trend" :class="stat.trendClass" v-if="stat.trend">
+                    <i :class="stat.trendIcon"></i>
+                    {{ stat.trend }}
                   </div>
                 </div>
               </div>
             </div>
+          </section>
 
-            <!-- Reservations by Date -->
-            <div class="col-lg-8">
-              <div class="chart-card">
-                <div class="chart-header">
-                  <h3 class="chart-title">Reservations Over Time</h3>
-                </div>
-                <div class="chart-body">
-                  <div class="bar-chart">
-                    <div v-for="day in reservationsByDate" :key="day.date" class="bar-container">
+          <!-- Charts Row -->
+          <section class="charts-section">
+            <div class="row g-4">
+              <!-- Status Distribution -->
+              <div class="col-lg-4">
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <h3 class="chart-title">Reservation Status</h3>
+                  </div>
+                  <div class="chart-body">
+                    <div class="donut-chart">
+                      <svg viewBox="0 0 100 100" class="donut">
+                        <circle
+                          v-for="(segment, index) in statusSegments"
+                          :key="segment.label"
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          fill="none"
+                          :stroke="segment.color"
+                          stroke-width="15"
+                          :stroke-dasharray="segment.dashArray"
+                          :stroke-dashoffset="segment.dashOffset"
+                          :style="{ animationDelay: `${index * 0.2}s` }"
+                        />
+                      </svg>
+                      <div class="donut-center">
+                        <span class="donut-total">{{ filteredReservations.length }}</span>
+                        <span class="donut-label">Total</span>
+                      </div>
+                    </div>
+                    <div class="chart-legend">
                       <div
-                        class="bar"
-                        :style="{ height: `${day.percent}%` }"
-                        :title="`${day.count} reservations`"
+                        v-for="segment in statusSegments"
+                        :key="segment.label"
+                        class="legend-item"
                       >
-                        <span class="bar-value">{{ day.count }}</span>
+                        <span class="legend-dot" :style="{ background: segment.color }"></span>
+                        <span class="legend-label">{{ segment.label }}</span>
+                        <span class="legend-value">{{ segment.count }}</span>
+                        <span class="legend-percent">{{ segment.percent }}%</span>
                       </div>
-                      <span class="bar-label">{{ day.label }}</span>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
 
-        <!-- Second Charts Row -->
-        <section class="charts-section">
-          <div class="row g-4">
-            <!-- Guests Distribution -->
-            <div class="col-lg-6">
-              <div class="chart-card">
-                <div class="chart-header">
-                  <h3 class="chart-title">Guests Distribution</h3>
-                </div>
-                <div class="chart-body">
-                  <div class="guests-chart">
-                    <div v-for="group in guestsDistribution" :key="group.range" class="guest-bar">
-                      <div class="guest-bar-wrapper">
-                        <div class="guest-bar-fill" :style="{ width: `${group.percent}%` }"></div>
+              <!-- Reservations by Date -->
+              <div class="col-lg-8">
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <h3 class="chart-title">Reservations Over Time</h3>
+                  </div>
+                  <div class="chart-body">
+                    <div class="bar-chart">
+                      <div v-for="day in reservationsByDate" :key="day.date" class="bar-container">
+                        <div
+                          class="bar"
+                          :style="{ height: `${day.percent}%` }"
+                          :title="`${day.count} reservations`"
+                        >
+                          <span class="bar-value">{{ day.count }}</span>
+                        </div>
+                        <span class="bar-label">{{ day.label }}</span>
                       </div>
-                      <span class="guest-range">{{ group.range }}</span>
-                      <span class="guest-count">{{ group.count }}</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+          </section>
 
-            <!-- Peak Hours -->
-            <div class="col-lg-6">
-              <div class="chart-card">
-                <div class="chart-header">
-                  <h3 class="chart-title">Peak Hours</h3>
-                </div>
-                <div class="chart-body">
-                  <div class="timeline-chart">
-                    <div v-for="hour in peakHours" :key="hour.time" class="timeline-row">
-                      <span class="timeline-time">{{ hour.time }}</span>
-                      <div class="timeline-bar-wrapper">
-                        <div class="timeline-bar" :style="{ width: `${hour.percent}%` }"></div>
+          <!-- Second Charts Row -->
+          <section class="charts-section">
+            <div class="row g-4">
+              <!-- Guests Distribution -->
+              <div class="col-lg-6">
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <h3 class="chart-title">Guests Distribution</h3>
+                  </div>
+                  <div class="chart-body">
+                    <div class="guests-chart">
+                      <div v-for="group in guestsDistribution" :key="group.range" class="guest-bar">
+                        <div class="guest-bar-wrapper">
+                          <div class="guest-bar-fill" :style="{ width: `${group.percent}%` }"></div>
+                        </div>
+                        <span class="guest-range">{{ group.range }}</span>
+                        <span class="guest-count">{{ group.count }}</span>
                       </div>
-                      <span class="timeline-count">{{ hour.count }}</span>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
 
-        <!-- Table Utilization -->
-        <section class="charts-section">
-          <div class="row g-4">
-            <div class="col-12">
-              <div class="chart-card">
-                <div class="chart-header">
-                  <h3 class="chart-title">Table Utilization</h3>
-                </div>
-                <div class="chart-body">
-                  <div class="table-grid">
-                    <div
-                      v-for="table in tableUtilization"
-                      :key="table.number"
-                      class="table-card"
-                      :class="{ occupied: table.reserved > 0 }"
-                    >
-                      <div class="table-icon">
-                        <i class="bi bi-inboxes"></i>
-                      </div>
-                      <div class="table-info">
-                        <span class="table-number">Table {{ table.number }}</span>
-                        <span class="table-capacity">{{ table.capacity }} seats</span>
-                      </div>
-                      <div class="table-status">
-                        <span class="status-count">{{ table.reserved }}</span>
-                        <span class="status-label">reserved</span>
+              <!-- Peak Hours -->
+              <div class="col-lg-6">
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <h3 class="chart-title">Peak Hours</h3>
+                  </div>
+                  <div class="chart-body">
+                    <div class="timeline-chart">
+                      <div v-for="hour in peakHours" :key="hour.time" class="timeline-row">
+                        <span class="timeline-time">{{ hour.time }}</span>
+                        <div class="timeline-bar-wrapper">
+                          <div class="timeline-bar" :style="{ width: `${hour.percent}%` }"></div>
+                        </div>
+                        <span class="timeline-count">{{ hour.count }}</span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <!-- Recent Activity -->
-        <section class="activity-section">
-          <div class="row g-4">
-            <div class="col-lg-6">
-              <div class="chart-card">
-                <div class="chart-header">
-                  <h3 class="chart-title">Recent Reservations</h3>
-                </div>
-                <div class="chart-body">
-                  <div class="activity-list">
-                    <div
-                      v-for="reservation in recentReservations"
-                      :key="reservation.id"
-                      class="activity-item"
-                    >
-                      <div class="activity-avatar">
-                        <i class="bi bi-person"></i>
-                      </div>
-                      <div class="activity-details">
-                        <span class="activity-name">{{ reservation.name }}</span>
-                        <span class="activity-meta">
-                          {{ reservation.guests }} guests · {{ formatDate(reservation.date) }}
-                        </span>
-                      </div>
-                      <div class="activity-status" :class="reservation.status">
-                        {{ reservation.status }}
+          <!-- Table Utilization -->
+          <section class="charts-section">
+            <div class="row g-4">
+              <div class="col-12">
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <h3 class="chart-title">Table Utilization</h3>
+                  </div>
+                  <div class="chart-body">
+                    <div class="table-grid">
+                      <div
+                        v-for="table in tableUtilization"
+                        :key="table.number"
+                        class="table-card"
+                        :class="{ occupied: table.reserved > 0 }"
+                      >
+                        <div class="table-icon">
+                          <i class="bi bi-inboxes"></i>
+                        </div>
+                        <div class="table-info">
+                          <span class="table-number">Table {{ table.number }}</span>
+                          <span class="table-capacity">{{ table.capacity }} seats</span>
+                        </div>
+                        <div class="table-status">
+                          <span class="status-count">{{ table.reserved }}</span>
+                          <span class="status-label">reserved</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+          </section>
 
-            <div class="col-lg-6">
-              <div class="chart-card">
-                <div class="chart-header">
-                  <h3 class="chart-title">Quick Insights</h3>
+          <!-- Recent Activity -->
+          <section class="activity-section">
+            <div class="row g-4">
+              <div class="col-lg-6">
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <h3 class="chart-title">Recent Reservations</h3>
+                  </div>
+                  <div class="chart-body">
+                    <div class="activity-list">
+                      <div
+                        v-for="reservation in recentReservations"
+                        :key="reservation.id"
+                        class="activity-item"
+                      >
+                        <div class="activity-avatar">
+                          <i class="bi bi-person"></i>
+                        </div>
+                        <div class="activity-details">
+                          <span class="activity-name">{{ reservation.name }}</span>
+                          <span class="activity-meta">
+                            {{ reservation.guests }} guests · {{ formatDate(reservation.date) }}
+                          </span>
+                        </div>
+                        <div class="activity-status" :class="reservation.status">
+                          {{ reservation.status }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div class="chart-body">
-                  <div class="insights-list">
-                    <div class="insight-item">
-                      <div class="insight-icon success">
-                        <i class="bi bi-calendar-check"></i>
+              </div>
+
+              <div class="col-lg-6">
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <h3 class="chart-title">Quick Insights</h3>
+                  </div>
+                  <div class="chart-body">
+                    <div class="insights-list">
+                      <div class="insight-item">
+                        <div class="insight-icon success">
+                          <i class="bi bi-calendar-check"></i>
+                        </div>
+                        <div class="insight-content">
+                          <span class="insight-label">Average Daily Reservations</span>
+                          <span class="insight-value">{{ averageDailyReservations }}</span>
+                        </div>
                       </div>
-                      <div class="insight-content">
-                        <span class="insight-label">Average Daily Reservations</span>
-                        <span class="insight-value">{{ averageDailyReservations }}</span>
+                      <div class="insight-item">
+                        <div class="insight-icon warning">
+                          <i class="bi bi-people"></i>
+                        </div>
+                        <div class="insight-content">
+                          <span class="insight-label">Average Party Size</span>
+                          <span class="insight-value">{{ averagePartySize }} guests</span>
+                        </div>
                       </div>
-                    </div>
-                    <div class="insight-item">
-                      <div class="insight-icon warning">
-                        <i class="bi bi-people"></i>
+                      <div class="insight-item">
+                        <div class="insight-icon info">
+                          <i class="bi bi-clock-history"></i>
+                        </div>
+                        <div class="insight-content">
+                          <span class="insight-label">Most Popular Time</span>
+                          <span class="insight-value">{{ mostPopularTime }}</span>
+                        </div>
                       </div>
-                      <div class="insight-content">
-                        <span class="insight-label">Average Party Size</span>
-                        <span class="insight-value">{{ averagePartySize }} guests</span>
-                      </div>
-                    </div>
-                    <div class="insight-item">
-                      <div class="insight-icon info">
-                        <i class="bi bi-clock-history"></i>
-                      </div>
-                      <div class="insight-content">
-                        <span class="insight-label">Most Popular Time</span>
-                        <span class="insight-value">{{ mostPopularTime }}</span>
-                      </div>
-                    </div>
-                    <div class="insight-item">
-                      <div class="insight-icon gold">
-                        <i class="bi bi-star"></i>
-                      </div>
-                      <div class="insight-content">
-                        <span class="insight-label">Confirmation Rate</span>
-                        <span class="insight-value">{{ confirmationRate }}%</span>
+                      <div class="insight-item">
+                        <div class="insight-icon gold">
+                          <i class="bi bi-star"></i>
+                        </div>
+                        <div class="insight-content">
+                          <span class="insight-label">Confirmation Rate</span>
+                          <span class="insight-value">{{ confirmationRate }}%</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
-      </div>
-    </main>
+          </section>
+
+          <!-- Search and Filter Table -->
+          <section class="search-section">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3 class="chart-title">
+                  <i class="bi bi-search"></i>
+                  Customer Search & Reservations
+                </h3>
+              </div>
+              <div class="chart-body">
+                <!-- Search and Filters -->
+                <div class="search-filters">
+                  <div class="search-input-group">
+                    <i class="bi bi-search"></i>
+                    <input
+                      v-model="searchQuery"
+                      type="text"
+                      placeholder="Search by name, email, or phone..."
+                      class="search-input"
+                    />
+                  </div>
+                  <div class="filter-group">
+                    <select v-model="statusFilter" class="filter-select">
+                      <option value="">All Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                    <input
+                      v-model="dateFilter"
+                      type="date"
+                      class="date-input"
+                      placeholder="Filter by date"
+                    />
+                    <button @click="clearFilters" class="btn-clear">
+                      <i class="bi bi-x-circle"></i>
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Results Count -->
+                <div class="results-info">
+                  <span
+                    >Showing {{ searchResults.length }} of
+                    {{ filteredReservations.length }} reservations</span
+                  >
+                </div>
+
+                <!-- Data Table -->
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th @click="sortBy('name')" class="sortable">
+                          Customer
+                          <i v-if="sortField === 'name'" :class="sortIcon"></i>
+                        </th>
+                        <th>Contact</th>
+                        <th @click="sortBy('date')" class="sortable">
+                          Date
+                          <i v-if="sortField === 'date'" :class="sortIcon"></i>
+                        </th>
+                        <th @click="sortBy('time')" class="sortable">
+                          Time
+                          <i v-if="sortField === 'time'" :class="sortIcon"></i>
+                        </th>
+                        <th @click="sortBy('guests')" class="sortable">
+                          Guests
+                          <i v-if="sortField === 'guests'" :class="sortIcon"></i>
+                        </th>
+                        <th>Table</th>
+                        <th @click="sortBy('status')" class="sortable">
+                          Status
+                          <i v-if="sortField === 'status'" :class="sortIcon"></i>
+                        </th>
+                        <th>Verified</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="reservation in paginatedResults" :key="reservation.id">
+                        <td>
+                          <div class="customer-cell">
+                            <div class="customer-avatar">
+                              {{ reservation.name.charAt(0).toUpperCase() }}
+                            </div>
+                            <div class="customer-info">
+                              <span class="customer-name">{{ reservation.name }}</span>
+                              <span class="customer-company">{{ reservation.company || '-' }}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div class="contact-cell">
+                            <span>{{ reservation.email }}</span>
+                            <span class="phone">{{ reservation.phone }}</span>
+                          </div>
+                        </td>
+                        <td>{{ formatDate(reservation.date) }}</td>
+                        <td>{{ formatTime(reservation.time) }}</td>
+                        <td>{{ reservation.guests }}</td>
+                        <td>{{ reservation.table_preference }}</td>
+                        <td>
+                          <span class="status-badge" :class="reservation.status">
+                            {{ reservation.status }}
+                          </span>
+                        </td>
+                        <td>
+                          <span class="verified-badge" :class="{ verified: reservation.verified }">
+                            <i
+                              :class="
+                                reservation.verified ? 'bi bi-check-circle-fill' : 'bi bi-x-circle'
+                              "
+                            ></i>
+                            {{ reservation.verified ? 'Yes' : 'No' }}
+                          </span>
+                        </td>
+                      </tr>
+                      <tr v-if="paginatedResults.length === 0">
+                        <td colspan="8" class="empty-message">
+                          <i class="bi bi-inbox"></i>
+                          No reservations found
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="totalPages > 1" class="pagination">
+                  <button
+                    @click="currentPage--"
+                    :disabled="currentPage === 1"
+                    class="btn-pagination"
+                  >
+                    <i class="bi bi-chevron-left"></i>
+                    Previous
+                  </button>
+                  <span class="page-info"> Page {{ currentPage }} of {{ totalPages }} </span>
+                  <button
+                    @click="currentPage++"
+                    :disabled="currentPage === totalPages"
+                    class="btn-pagination"
+                  >
+                    Next
+                    <i class="bi bi-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useReservationStore } from '../stores/reservations'
+import { useAuthStore } from '../stores/auth'
 
 const store = useReservationStore()
+const authStore = useAuthStore()
 const timeFilter = ref('all')
+const accessDenied = ref(false)
+
+// Search and filter state
+const searchQuery = ref('')
+const statusFilter = ref('')
+const dateFilter = ref('')
+const currentPage = ref(1)
+const itemsPerPage = 10
+const sortField = ref('date')
+const sortDirection = ref('desc')
+
+// Check access permission - only admin and staff can access
+const canAccess = computed(() => authStore.canAccessConfirmation)
+
+// Search results computed
+const searchResults = computed(() => {
+  let results = filteredReservations.value
+
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    results = results.filter(
+      (r) =>
+        r.name.toLowerCase().includes(query) ||
+        r.email.toLowerCase().includes(query) ||
+        r.phone.toLowerCase().includes(query) ||
+        (r.company && r.company.toLowerCase().includes(query)),
+    )
+  }
+
+  // Filter by status
+  if (statusFilter.value) {
+    results = results.filter((r) => r.status === statusFilter.value)
+  }
+
+  // Filter by date
+  if (dateFilter.value) {
+    results = results.filter((r) => r.date === dateFilter.value)
+  }
+
+  // Sort results
+  results = [...results].sort((a, b) => {
+    let aVal = a[sortField.value]
+    let bVal = b[sortField.value]
+
+    if (sortField.value === 'date' || sortField.value === 'time') {
+      aVal = new Date(`2000-01-01 ${aVal}`).getTime()
+      bVal = new Date(`2000-01-01 ${bVal}`).getTime()
+    }
+
+    if (sortDirection.value === 'asc') {
+      return aVal > bVal ? 1 : -1
+    } else {
+      return aVal < bVal ? 1 : -1
+    }
+  })
+
+  return results
+})
+
+// Pagination
+const totalPages = computed(() => Math.ceil(searchResults.value.length / itemsPerPage))
+
+const paginatedResults = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return searchResults.value.slice(start, end)
+})
+
+// Reset page when filters change
+watch([searchQuery, statusFilter, dateFilter], () => {
+  currentPage.value = 1
+})
+
+// Sort icon computed
+const sortIcon = computed(() => {
+  return sortDirection.value === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'
+})
+
+// Sort by field
+const sortBy = (field) => {
+  if (sortField.value === field) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortField.value = field
+    sortDirection.value = 'desc'
+  }
+}
+
+// Clear filters
+const clearFilters = () => {
+  searchQuery.value = ''
+  statusFilter.value = ''
+  dateFilter.value = ''
+  currentPage.value = 1
+}
 
 // Fetch reservations on mount
-onMounted(() => {
-  store.fetchReservations()
+onMounted(async () => {
+  await authStore.initializeAuth()
+  if (!canAccess.value) {
+    accessDenied.value = true
+  } else {
+    store.fetchReservations()
+  }
 })
 
 // Filter reservations based on time filter
@@ -569,6 +844,16 @@ const formatDate = (dateStr) => {
     day: 'numeric',
   })
 }
+
+// Format time
+const formatTime = (timeStr) => {
+  if (!timeStr) return '-'
+  const [hours, minutes] = timeStr.split(':')
+  const hour = parseInt(hours)
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const displayHour = hour % 12 || 12
+  return `${displayHour}:${minutes} ${ampm}`
+}
 </script>
 
 <style scoped>
@@ -577,6 +862,69 @@ const formatDate = (dateStr) => {
   background: #0a0a0a;
   color: #f4e5c2;
   padding-bottom: 4rem;
+}
+
+/* Access Denied Styles */
+.access-denied-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.access-denied-card {
+  background: linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(20, 20, 20, 0.95));
+  border: 1px solid rgba(244, 229, 194, 0.1);
+  border-radius: 16px;
+  padding: 3rem;
+  text-align: center;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.access-denied-card i {
+  font-size: 4rem;
+  color: #d4a574;
+  margin-bottom: 1.5rem;
+}
+
+.access-denied-card h2 {
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+  color: #f4e5c2;
+}
+
+.access-denied-card p {
+  color: #a0a0a0;
+  margin-bottom: 0.5rem;
+}
+
+.access-denied-card .access-note {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.btn-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #d4a574, #c49464);
+  color: #0a0a0a;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.btn-home:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 165, 116, 0.3);
 }
 
 /* Header */
@@ -1231,6 +1579,328 @@ const formatDate = (dateStr) => {
 
   .table-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Search and Filter Section */
+.search-section {
+  margin-top: 2rem;
+}
+
+.search-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.search-input-group {
+  flex: 1;
+  min-width: 280px;
+  position: relative;
+}
+
+.search-input-group i {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #f4e5c2;
+  font-size: 0.95rem;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #d4a574;
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
+}
+
+.search-input::placeholder {
+  color: #666;
+}
+
+.filter-group {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.filter-select,
+.date-input {
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #f4e5c2;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.filter-select:focus,
+.date-input:focus {
+  outline: none;
+  border-color: #d4a574;
+}
+
+.date-input {
+  color-scheme: dark;
+}
+
+.btn-clear {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #f4e5c2;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.btn-clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.results-info {
+  margin-bottom: 1rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+/* Data Table */
+.table-responsive {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.data-table th,
+.data-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.data-table th {
+  background: rgba(255, 255, 255, 0.05);
+  color: #d4a574;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.data-table th.sortable:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.data-table th i {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.data-table tbody tr {
+  transition: background 0.2s;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.data-table td {
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+/* Customer Cell */
+.customer-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.customer-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d4a574, #c49464);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0a0a0a;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.customer-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.customer-name {
+  color: #f4e5c2;
+  font-weight: 500;
+}
+
+.customer-company {
+  color: #666;
+  font-size: 0.8rem;
+}
+
+/* Contact Cell */
+.contact-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-cell .phone {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.pending {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.status-badge.confirmed {
+  background: rgba(40, 167, 69, 0.15);
+  color: #28a745;
+}
+
+.status-badge.cancelled {
+  background: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+}
+
+/* Verified Badge */
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #dc3545;
+}
+
+.verified-badge.verified {
+  color: #28a745;
+}
+
+/* Empty Message */
+.empty-message {
+  text-align: center;
+  padding: 3rem !important;
+  color: #666;
+}
+
+.empty-message i {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.page-info {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.btn-pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #f4e5c2;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pagination:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #d4a574;
+}
+
+.btn-pagination:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .search-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-input-group {
+    min-width: 100%;
+  }
+
+  .filter-group {
+    flex-wrap: wrap;
+  }
+
+  .data-table {
+    font-size: 0.85rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.75rem 0.5rem;
   }
 }
 </style>
