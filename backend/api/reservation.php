@@ -17,9 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/vendor/autoload.php';
-require_once __DIR__ . '/vendor/phpqrcode/qrlib.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/phpqrcode/qrlib.php';
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
@@ -111,7 +111,7 @@ function renderReservationTicket($id)
             return;
         }
 
-        $templatePath = __DIR__ . '/templates/Ticket_A5.png';
+        $templatePath = __DIR__ . '/../templates/Ticket_A5.png';
         if (!file_exists($templatePath)) {
             http_response_code(500);
             header('Content-Type: application/json');
