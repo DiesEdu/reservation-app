@@ -12,6 +12,10 @@ if (strpos($uri, '/api/auth') === 0) {
     // Route to auth API
     require __DIR__ . '/api_auth.php';
     return true;
+} elseif (strpos($uri, '/api/user') === 0) {
+    // Route to user profile API (wishlist, etc)
+    require __DIR__ . '/api/user_profile.php';
+    return true;
 } elseif (strpos($uri, '/api/users') === 0) {
     // Route to user management API
     require __DIR__ . '/api/user.php';

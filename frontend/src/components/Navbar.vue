@@ -39,33 +39,43 @@
                 <i class="bi bi-person-circle me-2"></i>Login
               </router-link>
             </template>
-            <!-- If authenticated, show user dropdown -->
+            <!-- If authenticated, show user name and confirmation button -->
             <template v-else>
-              <div class="dropdown">
-                <button
-                  class="btn btn-gold btn-sm dropdown-toggle"
-                  type="button"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                >
-                  <i class="bi bi-person-circle me-2"></i>{{ userName }}
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li>
-                    <span class="dropdown-item-text user-email">{{ userEmail }}</span>
-                  </li>
-                  <li><hr class="dropdown-divider" /></li>
-                  <li>
-                    <router-link to="/analytics" class="dropdown-item">
-                      <i class="bi bi-bar-chart me-2"></i>Analytics
-                    </router-link>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="#" @click.prevent="handleLogout">
-                      <i class="bi bi-box-arrow-right me-2"></i>Logout
-                    </a>
-                  </li>
-                </ul>
+              <div class="d-flex align-items-center gap-2">
+                <router-link to="/confirm" class="btn btn-gold btn-sm">
+                  <i class="bi bi-check2-circle me-2"></i>Confirm
+                </router-link>
+                <div class="dropdown">
+                  <button
+                    class="btn btn-outline-light btn-sm dropdown-toggle"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    <i class="bi bi-person-circle me-2"></i>{{ userName }}
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <span class="dropdown-item-text user-email">{{ userEmail }}</span>
+                    </li>
+                    <li><hr class="dropdown-divider" /></li>
+                    <li>
+                      <router-link to="/analytics" class="dropdown-item">
+                        <i class="bi bi-bar-chart me-2"></i>Analytics
+                      </router-link>
+                    </li>
+                    <li>
+                      <router-link to="/profile" class="dropdown-item">
+                        <i class="bi bi-person me-2"></i>My Profile
+                      </router-link>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" @click.prevent="handleLogout">
+                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                      </a>
+                    </li>
+                  </ul>
+                </div>
               </div>
             </template>
           </li>

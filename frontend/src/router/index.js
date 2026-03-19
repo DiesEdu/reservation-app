@@ -4,6 +4,7 @@ import CustomerConfirmation from '../components/CustomerConfirmation.vue'
 import AnalyticsPage from '../views/AnalyticsPage.vue'
 import LoginPage from '../views/LoginPage.vue'
 import RegisterPage from '../views/RegisterPage.vue'
+import ProfilePage from '../views/ProfilePage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -48,6 +49,15 @@ const router = createRouter({
       meta: {
         title: 'Register - Luxe Reserve',
         guest: true,
+      },
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: ProfilePage,
+      meta: {
+        title: 'My Profile - Luxe Reserve',
+        requiresAuth: true,
       },
     },
   ],

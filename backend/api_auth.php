@@ -44,6 +44,8 @@ if ($path === '/auth/register' && $method === 'POST') {
     forgotPassword();
 } elseif ($path === '/auth/reset-password' && $method === 'POST') {
     resetPassword();
+} elseif ($path === '/auth/resend-verification' && $method === 'POST') {
+    resendVerificationEmail();
 } else {
     http_response_code(404);
     echo json_encode(['success' => false, 'error' => 'Endpoint not found']);
@@ -584,6 +586,100 @@ function resetPassword()
             'error' => 'Password reset failed: ' . $e->getMessage()
         ]);
     }
+}
+
+/**
+ * POST - Resend verification email
+ */
+function resendVerificationEmail()
+{
+    $auth = requireAuth();
+
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    try {
+        // Get user verification data
+        $stmt = $pdo->prepare("
+            SELECT id, email, name, email_verified, verification_token
+            FROM users WHERE id = ?
+        ");
+        $stmt->execute([$auth['user']['id']]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            http_response_code(404);
+            echo json_encode([
+                'success' => false,
+                'error' => 'User not found'
+            ]);
+            return;
+        }
+
+        // Check if already verified
+        if ((int) $user['email_verified'] === 1) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Email is already verified'
+            ]);
+            return;
+        }
+
+        // Generate new verification token if needed
+        $verificationToken = $user['verification_token'];
+        if (!$verificationToken) {
+            $verificationToken = bin2hex(random_bytes(32));
+            $updateStmt = $pdo->prepare("UPDATE users SET verification_token = ? WHERE id = ?");
+            $updateStmt->execute([$verificationToken, $user['id']]);
+        }
+
+        // Send verification email
+        $sent = sendVerificationEmail($user['email'], $user['name'], $verificationToken);
+
+        if (!$sent) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Unable to send verification email'
+            ]);
+            return;
+        }
+
+        http_response_code(200);
+        echo json_encode([
+            'success' => true,
+            'message' => 'Verification email sent successfully'
+        ]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to resend verification email: ' . $e->getMessage()
+        ]);
+    }
+}
+
+/**
+ * Send verification email
+ */
+function sendVerificationEmail($email, $username, $verificationToken)
+{
+    $base_url = $_ENV['APP_URL'] ?? 'https://reserve.resonanz.id';
+    $verify_link = $base_url . "/api/auth/verify?token=" . $verificationToken;
+
+    $subject = "Verify your email";
+
+    $message = "
+Hello {$username},
+
+Please verify your email by clicking the link below:
+
+{$verify_link}
+";
+
+    $headers = "From: admin@reserve.resonanz.id";
+    return mail($email, $subject, $message, $headers);
 }
 
 /**
