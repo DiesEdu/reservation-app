@@ -186,7 +186,8 @@ const resendVerification = async () => {
 
     const data = await response.json()
 
-    if (response.ok) {
+    // Check the 'success' field from the API response instead of just response.ok
+    if (data.success) {
       verificationSuccess.value = true
       verificationMessage.value = data.message || 'Verification email sent successfully!'
     } else {
@@ -218,6 +219,8 @@ onMounted(() => {
   min-height: 100vh;
   background: #f8f9fa;
   padding: 2rem 1rem;
+  position: relative;
+  z-index: 1;
 }
 
 .container {

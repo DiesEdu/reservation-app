@@ -20,6 +20,9 @@ if (strpos($uri, '/api/auth') === 0) {
     // Route to user management API
     require __DIR__ . '/api/user.php';
     return true;
+} elseif (strpos($uri, '/api/blast-info-email') === 0 || strpos($uri, '/api/blast-info-wa') === 0) {
+    require __DIR__ . '/api/blast_information.php';
+    return true;
 } elseif (strpos($uri, '/api/reservations') === 0 || strpos($uri, '/api') === 0) {
     // Route to reservations API
     require __DIR__ . '/api/reservation.php';
