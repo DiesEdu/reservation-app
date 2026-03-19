@@ -29,11 +29,18 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from './stores/auth'
 import Navbar from './components/Navbar.vue'
 
 const route = useRoute()
+const authStore = useAuthStore()
+
+// Initialize auth state on app start
+onMounted(async () => {
+  await authStore.initializeAuth()
+})
 
 const showNavbar = computed(() => {
   return ['home', 'login', 'register'].includes(route.name)

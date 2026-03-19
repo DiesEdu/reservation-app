@@ -96,68 +96,6 @@
           </div>
         </div>
 
-        <!-- Wishlist Card -->
-        <div class="profile-card">
-          <div class="card-header">
-            <h2>My Wishlist</h2>
-          </div>
-          <div class="card-body">
-            <div v-if="wishlistLoading" class="loading-small">
-              <div class="spinner-small"></div>
-            </div>
-            <div v-else-if="wishlist.length === 0" class="empty-state">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path
-                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                ></path>
-              </svg>
-              <p>Your wishlist is empty</p>
-              <button @click="goToHome" class="btn btn-secondary">Browse Restaurants</button>
-            </div>
-            <div v-else class="wishlist-grid">
-              <div v-for="item in wishlist" :key="item.id" class="wishlist-item">
-                <div class="wishlist-item-content">
-                  <h3>{{ item.name || item.restaurant_name }}</h3>
-                  <p v-if="item.description">{{ item.description }}</p>
-                  <span class="date-added">Added {{ formatDate(item.created_at) }}</span>
-                </div>
-                <button
-                  @click="removeFromWishlist(item.id)"
-                  class="btn-remove"
-                  title="Remove from wishlist"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path
-                      d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Account Actions -->
         <div class="profile-card">
           <div class="card-header">
@@ -205,10 +143,6 @@ const error = ref(null)
 const resendingEmail = ref(false)
 const verificationMessage = ref('')
 const verificationSuccess = ref(false)
-const wishlist = ref([])
-const wishlistLoading = ref(false)
-
-// Computed
 const user = ref(null)
 
 // Methods
@@ -220,7 +154,6 @@ const loadProfile = async () => {
     const success = await authStore.fetchCurrentUser()
     if (success) {
       user.value = authStore.user
-      await loadWishlist()
     } else {
       error.value = 'Failed to load profile. Please login again.'
       setTimeout(() => {
@@ -232,35 +165,6 @@ const loadProfile = async () => {
     console.error('Profile load error:', err)
   } finally {
     loading.value = false
-  }
-}
-
-const loadWishlist = async () => {
-  wishlistLoading.value = true
-
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/user/wishlist`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authStore.accessToken}`,
-        },
-      },
-    )
-
-    const data = await response.json()
-
-    if (data.success) {
-      wishlist.value = data.data || []
-    } else {
-      console.error('Failed to load wishlist:', data.error)
-    }
-  } catch (err) {
-    console.error('Wishlist load error:', err)
-  } finally {
-    wishlistLoading.value = false
   }
 }
 
@@ -298,48 +202,9 @@ const resendVerification = async () => {
   }
 }
 
-const removeFromWishlist = async (itemId) => {
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/user/wishlist/${itemId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authStore.accessToken}`,
-        },
-      },
-    )
-
-    const data = await response.json()
-
-    if (data.success) {
-      wishlist.value = wishlist.value.filter((item) => item.id !== itemId)
-    } else {
-      console.error('Failed to remove from wishlist:', data.error)
-    }
-  } catch (err) {
-    console.error('Remove from wishlist error:', err)
-  }
-}
-
 const logout = async () => {
   await authStore.logout()
   router.push('/login')
-}
-
-const goToHome = () => {
-  router.push('/')
-}
-
-const formatDate = (dateString) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
 }
 
 // Lifecycle
