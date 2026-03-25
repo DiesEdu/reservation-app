@@ -81,7 +81,7 @@
                 <span class="status-dot"></span>
                 <span class="status-text">{{ res.status }}</span>
               </div>
-              <div class="action-buttons">
+              <div v-if="canManage" class="action-buttons">
                 <button
                   @click="generateQRCode(res)"
                   class="action-btn qrcode"
@@ -179,13 +179,17 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useReservationStore } from '../stores/reservations'
+import { useAuthStore } from '../stores/auth'
 import QRCode from 'qrcode'
 
 const store = useReservationStore()
+const authStore = useAuthStore()
 const filter = ref('all')
 const showQRModal = ref(false)
 const qrCodeDataUrl = ref('')
 const selectedReservation = ref(null)
+
+const canManage = computed(() => authStore.isAdmin || authStore.isStaff)
 
 const tabs = [
   { value: 'all', label: 'All', icon: 'bi bi-grid' },
