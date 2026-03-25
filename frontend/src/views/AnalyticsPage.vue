@@ -82,7 +82,7 @@
                     <input
                       v-model="searchQuery"
                       type="text"
-                      placeholder="Search by name, email, or phone..."
+                      placeholder="Search by name, email, or table..."
                       class="search-input"
                     />
                   </div>
@@ -118,10 +118,22 @@
 
                 <!-- Results Count -->
                 <div class="results-info">
-                  <span
-                    >Showing {{ searchResults.length }} of
-                    {{ filteredReservations.length }} reservations</span
-                  >
+                  <span>
+                    Showing {{ tableResults.length }} of {{ tablePagination.total }} reservations
+                  </span>
+                  <span v-if="tableLoading" class="loading-text">Loading...</span>
+                  <span v-if="tableError" class="error-text">{{ tableError }}</span>
+                  <div class="per-page">
+                    <label for="per-page">Per page:</label>
+                    <select id="per-page" v-model.number="itemsPerPage" class="filter-select compact">
+                      <option :value="5">5</option>
+                      <option :value="10">10</option>
+                      <option :value="20">20</option>
+                      <option :value="25">25</option>
+                      <option :value="50">50</option>
+                      <option :value="100">100</option>
+                    </select>
+                  </div>
                 </div>
 
                 <!-- Data Table -->
@@ -473,6 +485,8 @@ import { useReservationStore } from '../stores/reservations'
 import { useAuthStore } from '../stores/auth'
 import Navbar from '../components/Navbar.vue'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+
 const store = useReservationStore()
 const authStore = useAuthStore()
 const timeFilter = ref('all')
@@ -484,7 +498,7 @@ const statusFilter = ref('')
 const dateFilter = ref('')
 const tableFilter = ref('')
 const currentPage = ref(1)
-const itemsPerPage = 10
+const itemsPerPage = ref(20)
 const sortField = ref('date')
 const sortDirection = ref('desc')
 
@@ -493,33 +507,44 @@ const tableOptions = computed(() => store.tableNames || [])
 // Check access permission - only admin and staff can access
 const canAccess = computed(() => authStore.canAccessConfirmation)
 
-// Search results computed
-const searchResults = computed(() => {
-  let results = filteredReservations.value
+// Server-backed table data
+const tableData = ref([])
+const tablePagination = ref({
+  page: 1,
+  perPage: itemsPerPage.value,
+  total: 0,
+  totalPages: 1,
+})
+const tableLoading = ref(false)
+const tableError = ref(null)
 
-  // Filter by search query
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    results = results.filter(
-      (r) =>
-        r.name.toLowerCase().includes(query) ||
-        r.email.toLowerCase().includes(query) ||
-        r.phone.toLowerCase().includes(query) ||
-        (r.company && r.company.toLowerCase().includes(query)),
-    )
+const tableResults = computed(() => {
+  let results = tableData.value
+
+  // Time filter (client-side)
+  if (timeFilter.value !== 'all') {
+    const now = new Date()
+    results = results.filter((r) => {
+      const reservationDate = new Date(r.date)
+      if (timeFilter.value === 'today') {
+        return reservationDate.toDateString() === now.toDateString()
+      } else if (timeFilter.value === 'week') {
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        return reservationDate >= weekAgo
+      } else if (timeFilter.value === 'month') {
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        return reservationDate >= monthAgo
+      }
+      return true
+    })
   }
 
-  // Filter by status
-  if (statusFilter.value) {
-    results = results.filter((r) => r.status === statusFilter.value)
-  }
-
-  // Filter by date
+  // Date filter (client-side exact match)
   if (dateFilter.value) {
     results = results.filter((r) => r.date === dateFilter.value)
   }
 
-  // Filter by table name
+  // Table filter (client-side exact match)
   if (tableFilter.value) {
     const tableQuery = tableFilter.value.toString().toLowerCase()
     results = results.filter((r) => (r.table || '').toString().toLowerCase() === tableQuery)
@@ -545,18 +570,65 @@ const searchResults = computed(() => {
   return results
 })
 
-// Pagination
-const totalPages = computed(() => Math.ceil(searchResults.value.length / itemsPerPage))
+const totalPages = computed(() => {
+  if (tablePagination.value.totalPages) return tablePagination.value.totalPages
+  const total = tablePagination.value.total || 0
+  return Math.max(1, Math.ceil(total / itemsPerPage.value))
+})
+const paginatedResults = computed(() => tableResults.value)
 
-const paginatedResults = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  const end = start + itemsPerPage
-  return searchResults.value.slice(start, end)
+const fetchTableData = async () => {
+  tableLoading.value = true
+  tableError.value = null
+
+  const params = new URLSearchParams()
+  params.set('page', currentPage.value.toString())
+  params.set('limit', itemsPerPage.value.toString())
+  if (statusFilter.value) params.set('status', statusFilter.value)
+  if (searchQuery.value) params.set('search', searchQuery.value)
+  if (tableFilter.value) params.set('table', tableFilter.value)
+
+  try {
+    const response = await fetch(`${API_URL}/reservations?${params.toString()}`)
+    const data = await response.json()
+
+    if (data.success) {
+      tableData.value = data.data || []
+      tablePagination.value = data.pagination || {
+        page: currentPage.value,
+        perPage: itemsPerPage.value,
+        total: data.data?.length || 0,
+        totalPages: 1,
+      }
+      if (data.pagination?.page) {
+        currentPage.value = data.pagination.page
+      }
+    } else {
+      tableError.value = data.error || 'Failed to load reservations'
+    }
+  } catch (err) {
+    tableError.value = 'Network error: Unable to connect to server'
+    console.error('Error loading reservations:', err)
+  } finally {
+    tableLoading.value = false
+  }
+}
+
+// Reset page and refetch when filters change
+watch([searchQuery, statusFilter, tableFilter], () => {
+  currentPage.value = 1
+  fetchTableData()
 })
 
-// Reset page when filters change
-watch([searchQuery, statusFilter, dateFilter, tableFilter], () => {
+// Refetch when page changes
+watch(currentPage, () => {
+  fetchTableData()
+})
+
+// Refetch when per-page changes
+watch(itemsPerPage, () => {
   currentPage.value = 1
+  fetchTableData()
 })
 
 // Sort icon computed
@@ -581,6 +653,7 @@ const clearFilters = () => {
   dateFilter.value = ''
   tableFilter.value = ''
   currentPage.value = 1
+  fetchTableData()
 }
 
 // Fetch reservations on mount
@@ -591,6 +664,7 @@ onMounted(async () => {
   } else {
     store.fetchReservations()
     store.fetchTableNames()
+    fetchTableData()
   }
 })
 
@@ -614,6 +688,11 @@ const filteredReservations = computed(() => {
     }
     return true
   })
+})
+
+// Reset page on client-only filters
+watch([dateFilter, timeFilter], () => {
+  currentPage.value = 1
 })
 
 // Summary Stats
@@ -1568,6 +1647,29 @@ const formatTime = (timeStr) => {
   margin-bottom: 1rem;
   color: #5b6b86;
   font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.loading-text {
+  color: var(--primary);
+}
+
+.error-text {
+  color: #dc3545;
+}
+
+.per-page {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-select.compact {
+  padding: 0.4rem 0.6rem;
+  min-width: 80px;
 }
 
 /* Data Table */

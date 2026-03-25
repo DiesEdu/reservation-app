@@ -75,6 +75,9 @@ if ($path === '/reservations' || $path === '/reservations/') {
 } elseif ($path === '/reservations/table-preferences' && $method === 'GET') {
     // Get distinct table names used in reservations
     getTablePreferences();
+} elseif ($path === '/reservations/summary' && $method === 'GET') {
+    // Get reservations summary counts
+    getReservationSummary();
 } else {
     http_response_code(404);
     echo json_encode(['success' => false, 'error' => 'Endpoint not found']);
@@ -410,18 +413,58 @@ function getReservations()
     $db = Database::getInstance();
     $pdo = $db->getConnection();
 
-    // Check for status filter
+    // Filters and pagination
     $status = $_GET['status'] ?? null;
+    $search = isset($_GET['search']) ? trim($_GET['search']) : null;
+    $table = isset($_GET['table']) ? trim($_GET['table']) : null;
+    $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+    $perPage = isset($_GET['limit']) ? max(1, min(100, (int) $_GET['limit'])) : 20; // default 20, cap at 100
+    $offset = ($page - 1) * $perPage;
 
     try {
+        // Build WHERE clause dynamically
+        $where = [];
+        $params = [];
+
         if ($status && in_array($status, ['pending', 'confirmed', 'cancelled'])) {
-            $stmt = $pdo->prepare("SELECT * FROM reservations WHERE status = ? ORDER BY date ASC, time ASC");
-            $stmt->execute([$status]);
-        } else {
-            $stmt = $pdo->query("SELECT * FROM reservations ORDER BY date ASC, time ASC");
+            $where[] = 'status = ?';
+            $params[] = $status;
         }
 
-        $reservations = $stmt->fetchAll();
+        if ($search !== null && $search !== '') {
+            $where[] = '(name LIKE ? OR email LIKE ? OR table_preference LIKE ?)';
+            $pattern = '%' . $search . '%';
+            $params[] = $pattern;
+            $params[] = $pattern;
+            $params[] = $pattern;
+        }
+
+        if ($table !== null && $table !== '') {
+            $where[] = 'table_preference = ?';
+            $params[] = $table;
+        }
+
+        $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+        // Total count for pagination
+        $countStmt = $pdo->prepare("SELECT COUNT(*) as total FROM reservations {$whereSql}");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        // Fetch current page
+        $dataSql = "SELECT * FROM reservations {$whereSql} ORDER BY date ASC, time ASC LIMIT ? OFFSET ?";
+        $dataStmt = $pdo->prepare($dataSql);
+
+        // Bind search/status params first (if any)
+        $bindIndex = 1;
+        foreach ($params as $value) {
+            $dataStmt->bindValue($bindIndex, $value, PDO::PARAM_STR);
+            $bindIndex++;
+        }
+        $dataStmt->bindValue($bindIndex, (int) $perPage, PDO::PARAM_INT);
+        $dataStmt->bindValue($bindIndex + 1, (int) $offset, PDO::PARAM_INT);
+        $dataStmt->execute();
+        $reservations = $dataStmt->fetchAll();
 
         // Format the data to match frontend expectations
         $formatted = array_map(function ($res) {
@@ -445,7 +488,15 @@ function getReservations()
 
         echo json_encode([
             'success' => true,
-            'data' => $formatted
+            'data' => $formatted,
+            'pagination' => [
+                'page' => $page,
+                'perPage' => $perPage,
+                'total' => $total,
+                'totalPages' => (int) ceil($total / $perPage),
+                'search' => $search,
+                'status' => $status ?? 'all'
+            ]
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
@@ -477,6 +528,45 @@ function getTablePreferences()
         echo json_encode([
             'success' => false,
             'error' => 'Failed to fetch table preferences: ' . $e->getMessage()
+        ]);
+    }
+}
+
+/**
+ * GET reservations summary: totals and counts by status
+ */
+function getReservationSummary()
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    try {
+        // Using boolean expressions in SUM works in MySQL (true = 1, false = 0)
+        $stmt = $pdo->query("
+            SELECT
+                COUNT(*) AS total_reservations,
+                SUM(status = 'confirmed') AS confirmed_count,
+                SUM(status = 'pending') AS pending_count,
+                SUM(guests) AS total_guests
+            FROM reservations
+        ");
+
+        $row = $stmt->fetch();
+
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'totalReservations' => (int) ($row['total_reservations'] ?? 0),
+                'confirmed' => (int) ($row['confirmed_count'] ?? 0),
+                'pending' => (int) ($row['pending_count'] ?? 0),
+                'totalGuests' => (int) ($row['total_guests'] ?? 0),
+            ],
+        ]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to fetch summary: ' . $e->getMessage(),
         ]);
     }
 }

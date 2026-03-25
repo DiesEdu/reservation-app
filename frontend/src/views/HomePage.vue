@@ -64,43 +64,70 @@
 </template>
 
 <script setup>
-import { computed, reactive, onMounted } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import { useReservationStore } from '../stores/reservations'
 import ReservationForm from '../components/ReservationForm.vue'
 import ReservationList from '../components/ReservationList.vue'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+
 const store = useReservationStore()
 
-// Fetch reservations on mount
+const summary = ref({
+  totalReservations: 0,
+  confirmed: 0,
+  pending: 0,
+  totalGuests: 0,
+})
+
+const fetchSummary = async () => {
+  try {
+    const res = await fetch(`${API_URL}/reservations/summary`)
+    const data = await res.json()
+    if (data.success && data.data) {
+      summary.value = {
+        totalReservations: data.data.totalReservations ?? 0,
+        confirmed: data.data.confirmed ?? 0,
+        pending: data.data.pending ?? 0,
+        totalGuests: data.data.totalGuests ?? 0,
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load summary', err)
+  }
+}
+
+// Fetch reservations + summary on mount
 onMounted(() => {
   store.fetchReservations()
+  fetchSummary()
 })
 
 const stats = reactive([
   {
     label: 'Total Reservations',
-    value: computed(() => store.reservations.length),
+    value: computed(() => summary.value.totalReservations),
     icon: 'bi bi-calendar-check',
     color: 'gold',
     hover: false,
   },
   {
     label: 'Confirmed',
-    value: computed(() => store.reservations.filter((r) => r.status === 'confirmed').length),
+    value: computed(() => summary.value.confirmed),
     icon: 'bi bi-check-circle',
     color: 'success',
     hover: false,
   },
   {
     label: 'Pending',
-    value: computed(() => store.reservations.filter((r) => r.status === 'pending').length),
+    value: computed(() => summary.value.pending),
     icon: 'bi bi-hourglass-split',
     color: 'warning',
     hover: false,
   },
   {
     label: 'Total Guests',
-    value: computed(() => store.reservations.reduce((sum, r) => sum + r.guests, 0)),
+    value: computed(() => summary.value.totalGuests),
     icon: 'bi bi-people',
     color: 'info',
     hover: false,

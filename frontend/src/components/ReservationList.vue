@@ -25,102 +25,140 @@
     </div>
 
     <div class="list-body">
-      <TransitionGroup name="reservation" tag="div" class="reservations-container">
-        <div
-          v-for="res in filteredReservations"
-          :key="res.id"
-          class="reservation-item"
-          :class="`status-${res.status}`"
-        >
-          <div class="item-glow"></div>
-          <div class="item-content">
-            <div class="guest-info">
-              <div class="avatar-ring">
-                <div class="avatar">
-                  {{ res.name.charAt(0) }}
+      <div class="results-bar">
+        <div>
+          <strong>{{ totalItems }}</strong> total · Page {{ currentPage }} of {{ totalPages }}
+        </div>
+        <div class="per-page">
+          <label for="per-page-select">Per page</label>
+          <select id="per-page-select" v-model.number="perPage" class="per-page-select">
+            <option v-for="opt in perPageOptions" :key="opt" :value="opt">{{ opt }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div v-if="listLoading" class="loading-state">
+        <i class="bi bi-arrow-clockwise spin"></i>
+        Loading reservations...
+      </div>
+      <div v-else-if="listError" class="error-state">
+        <i class="bi bi-exclamation-triangle"></i>
+        {{ listError }}
+      </div>
+      <template v-else>
+        <TransitionGroup name="reservation" tag="div" class="reservations-container">
+          <div
+            v-for="res in filteredReservations"
+            :key="res.id"
+            class="reservation-item"
+            :class="`status-${res.status}`"
+          >
+            <div class="item-glow"></div>
+            <div class="item-content">
+              <div class="guest-info">
+                <div class="avatar-ring">
+                  <div class="avatar">
+                    {{ res.name.charAt(0) }}
+                  </div>
+                  <div class="ring-animation"></div>
                 </div>
-                <div class="ring-animation"></div>
-              </div>
-              <div class="guest-details">
-                <h6 class="guest-name">{{ res.name }}</h6>
-                <div class="guest-meta">
-                  <span class="meta-item"><i class="bi bi-envelope"></i>{{ res.email }}</span>
-                  <span class="meta-item"><i class="bi bi-telephone"></i>{{ res.phone }}</span>
+                <div class="guest-details">
+                  <h6 class="guest-name">{{ res.name }}</h6>
+                  <div class="guest-meta">
+                    <span class="meta-item"><i class="bi bi-envelope"></i>{{ res.email }}</span>
+                    <span class="meta-item"><i class="bi bi-telephone"></i>{{ res.phone }}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div class="reservation-info">
-              <div class="info-pill date-pill">
-                <i class="bi bi-calendar3"></i>
-                <span>{{ formatDate(res.date) }}</span>
+              <div class="reservation-info">
+                <div class="info-pill date-pill">
+                  <i class="bi bi-calendar3"></i>
+                  <span>{{ formatDate(res.date) }}</span>
+                </div>
+                <div class="info-pill time-pill">
+                  <i class="bi bi-clock"></i>
+                  <span>{{ res.time }}</span>
+                </div>
+                <div class="info-pill guests-pill">
+                  <i class="bi bi-people"></i>
+                  <span>{{ res.guests }} Guests</span>
+                </div>
               </div>
-              <div class="info-pill time-pill">
-                <i class="bi bi-clock"></i>
-                <span>{{ res.time }}</span>
-              </div>
-              <div class="info-pill guests-pill">
-                <i class="bi bi-people"></i>
-                <span>{{ res.guests }} Guests</span>
-              </div>
-            </div>
 
-            <div class="table-info">
-              <div class="table-badge">
-                <i class="bi bi-shop"></i>
-                <span>{{ res.table }}</span>
+              <div class="table-info">
+                <div class="table-badge">
+                  <i class="bi bi-shop"></i>
+                  <span>{{ res.table }}</span>
+                </div>
+                <div v-if="res.specialRequests" class="special-note">
+                  <i class="bi bi-stars"></i>
+                  <span>{{ res.specialRequests }}</span>
+                </div>
               </div>
-              <div v-if="res.specialRequests" class="special-note">
-                <i class="bi bi-stars"></i>
-                <span>{{ res.specialRequests }}</span>
-              </div>
-            </div>
 
-            <div class="status-actions">
-              <div class="status-badge" :class="res.status">
-                <span class="status-dot"></span>
-                <span class="status-text">{{ res.status }}</span>
-              </div>
-              <div v-if="canManage" class="action-buttons">
-                <button
-                  @click="generateQRCode(res)"
-                  class="action-btn qrcode"
-                  title="Generate QR Code"
-                >
-                  <i class="bi bi-qr-code"></i>
-                </button>
-                <button
-                  v-if="res.status === 'pending'"
-                  @click="confirmReservation(res.id)"
-                  class="action-btn confirm"
-                  title="Confirm"
-                >
-                  <i class="bi bi-check-lg"></i>
-                </button>
-                <button
-                  v-if="res.status !== 'cancelled'"
-                  @click="cancelReservation(res.id)"
-                  class="action-btn cancel"
-                  title="Cancel"
-                >
-                  <i class="bi bi-x-lg"></i>
-                </button>
-                <button @click="deleteReservation(res.id)" class="action-btn delete" title="Delete">
-                  <i class="bi bi-trash3"></i>
-                </button>
+              <div class="status-actions">
+                <div class="status-badge" :class="res.status">
+                  <span class="status-dot"></span>
+                  <span class="status-text">{{ res.status }}</span>
+                </div>
+                <div v-if="canManage" class="action-buttons">
+                  <button
+                    @click="generateQRCode(res)"
+                    class="action-btn qrcode"
+                    title="Generate QR Code"
+                  >
+                    <i class="bi bi-qr-code"></i>
+                  </button>
+                  <button
+                    v-if="res.status === 'pending'"
+                    @click="confirmReservation(res.id)"
+                    class="action-btn confirm"
+                    title="Confirm"
+                  >
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                  <button
+                    v-if="res.status !== 'cancelled'"
+                    @click="cancelReservation(res.id)"
+                    class="action-btn cancel"
+                    title="Cancel"
+                  >
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                  <button
+                    @click="deleteReservation(res.id)"
+                    class="action-btn delete"
+                    title="Delete"
+                  >
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </TransitionGroup>
+        </TransitionGroup>
 
-      <div v-if="filteredReservations.length === 0" class="empty-state">
-        <div class="empty-icon">
-          <i class="bi bi-inbox"></i>
+        <div v-if="filteredReservations.length === 0" class="empty-state">
+          <div class="empty-icon">
+            <i class="bi bi-inbox"></i>
+          </div>
+          <h6>No reservations found</h6>
+          <p>Create a new reservation to get started</p>
         </div>
-        <h6>No reservations found</h6>
-        <p>Create a new reservation to get started</p>
-      </div>
+      </template>
+    </div>
+
+    <div class="pagination-bar" v-if="totalPages > 1">
+      <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">
+        <i class="bi bi-chevron-left"></i>
+        Prev
+      </button>
+      <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+      <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage++">
+        Next
+        <i class="bi bi-chevron-right"></i>
+      </button>
     </div>
 
     <div class="list-footer">
@@ -177,10 +215,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useReservationStore } from '../stores/reservations'
 import { useAuthStore } from '../stores/auth'
 import QRCode from 'qrcode'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 const store = useReservationStore()
 const authStore = useAuthStore()
@@ -188,6 +228,16 @@ const filter = ref('all')
 const showQRModal = ref(false)
 const qrCodeDataUrl = ref('')
 const selectedReservation = ref(null)
+
+// pagination state
+const currentPage = ref(1)
+const perPage = ref(10)
+const totalPages = ref(1)
+const totalItems = ref(0)
+const perPageOptions = [5, 10, 20, 25, 50, 100]
+const listLoading = ref(false)
+const listError = ref(null)
+const pageReservations = ref([])
 
 const canManage = computed(() => authStore.isAdmin || authStore.isStaff)
 
@@ -198,27 +248,63 @@ const tabs = [
   { value: 'cancelled', label: 'Cancelled', icon: 'bi bi-x-circle' },
 ]
 
-const filteredReservations = computed(() => store.getByStatus(filter.value))
+const filteredReservations = computed(() => pageReservations.value)
 
 const confirmedCount = computed(
-  () => store.reservations.filter((r) => r.status === 'confirmed').length,
+  () => pageReservations.value.filter((r) => r.status === 'confirmed').length,
 )
-const pendingCount = computed(() => store.reservations.filter((r) => r.status === 'pending').length)
+const pendingCount = computed(() => pageReservations.value.filter((r) => r.status === 'pending').length)
 const cancelledCount = computed(
-  () => store.reservations.filter((r) => r.status === 'cancelled').length,
+  () => pageReservations.value.filter((r) => r.status === 'cancelled').length,
 )
+
+const fetchPage = async () => {
+  listLoading.value = true
+  listError.value = null
+
+  const params = new URLSearchParams()
+  params.set('page', currentPage.value.toString())
+  params.set('limit', perPage.value.toString())
+  if (filter.value !== 'all') {
+    params.set('status', filter.value)
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/reservations?${params.toString()}`)
+    const data = await response.json()
+
+    if (data.success) {
+      pageReservations.value = data.data || []
+      const pagination = data.pagination || {}
+      totalPages.value = pagination.totalPages || 1
+      totalItems.value = pagination.total || pageReservations.value.length
+      // keep page in sync with backend response
+      if (pagination.page) currentPage.value = pagination.page
+    } else {
+      listError.value = data.error || 'Failed to load reservations'
+    }
+  } catch (err) {
+    listError.value = 'Network error: Unable to connect to server'
+    console.error('Error fetching reservations:', err)
+  } finally {
+    listLoading.value = false
+  }
+}
 
 const confirmReservation = async (id) => {
   await store.updateStatus(id, 'confirmed')
+  fetchPage()
 }
 
 const cancelReservation = async (id) => {
   await store.updateStatus(id, 'cancelled')
+  fetchPage()
 }
 
 const deleteReservation = async (id) => {
   if (confirm('Are you sure you want to delete this reservation?')) {
     await store.deleteReservation(id)
+    fetchPage()
   }
 }
 
@@ -256,6 +342,24 @@ const closeQRModal = () => {
   qrCodeDataUrl.value = ''
   selectedReservation.value = null
 }
+
+onMounted(() => {
+  fetchPage()
+})
+
+watch(filter, () => {
+  currentPage.value = 1
+  fetchPage()
+})
+
+watch(perPage, () => {
+  currentPage.value = 1
+  fetchPage()
+})
+
+watch(currentPage, () => {
+  fetchPage()
+})
 </script>
 
 <style scoped>
@@ -377,6 +481,54 @@ const closeQRModal = () => {
   max-height: 600px;
   overflow-y: auto;
   background: #ffffff;
+}
+
+.results-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  color: #42506a;
+  font-weight: 600;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.per-page {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.per-page-select {
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #f6f8ff;
+  color: #0f172a;
+}
+
+.loading-state,
+.error-state {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #5b6b86;
+  padding: 1rem;
+}
+
+.error-state {
+  color: #dc3545;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .list-body::-webkit-scrollbar {
@@ -862,6 +1014,39 @@ const closeQRModal = () => {
   padding: 1.4rem 1.6rem;
   background: #f6f8ff;
   border-top: 1px solid var(--border);
+}
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #ffffff;
+  border-top: 1px solid var(--border);
+}
+
+.page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(135deg, var(--primary) 0%, #8cc4ff 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(31, 79, 163, 0.18);
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #42506a;
+  font-weight: 600;
 }
 
 .stats-line {
