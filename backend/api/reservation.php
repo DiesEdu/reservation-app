@@ -622,7 +622,7 @@ function importReservationsFromExcel()
             }
         }
 
-        $requiredHeaders = ['name', 'email', 'phone', 'table_preference'];
+        $requiredHeaders = ['name', 'company', 'position', 'email', 'phone', 'table_preference'];
         $missingHeaders = array_diff($requiredHeaders, array_values($headerMap));
         if (!empty($missingHeaders)) {
             http_response_code(400);
@@ -641,8 +641,8 @@ function importReservationsFromExcel()
 
         $insertStmt = $pdo->prepare("
             INSERT INTO reservations
-            (name, email, phone, date, time, guests, table_preference, status, special_requests)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+            (name, company, position, email, phone, date, time, guests, table_preference, status, special_requests)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?)
         ");
 
         $qrStmt = $pdo->prepare("UPDATE reservations SET qr_code = ? WHERE id = ?");
@@ -663,6 +663,8 @@ function importReservationsFromExcel()
             // Skip completely empty rows
             if (
                 (empty($rowValues['name'])) &&
+                (empty($rowValues['company'])) &&
+                (empty($rowValues['position'])) &&
                 (empty($rowValues['email'])) &&
                 (empty($rowValues['phone'])) &&
                 (empty($rowValues['table_preference']))
@@ -671,11 +673,13 @@ function importReservationsFromExcel()
             }
 
             $name = $rowValues['name'] ?? '';
+            $company = $rowValues['company'] ?? '';
+            $position = $rowValues['position'] ?? '';
             $email = $rowValues['email'] ?? '';
             $phone = $rowValues['phone'] ?? '';
             $tablePreference = $rowValues['table_preference'] ?? ($rowValues['table'] ?? '');
 
-            if (!$name || !$email || !$phone || !$tablePreference) {
+            if (!$name || !$company || !$position || !$email || !$phone || !$tablePreference) {
                 $errors[] = "Row {$row}: missing required fields";
                 continue;
             }
@@ -706,6 +710,8 @@ function importReservationsFromExcel()
 
             $insertStmt->execute([
                 $name,
+                $company,
+                $position,
                 $email,
                 $phone,
                 $dateValue,

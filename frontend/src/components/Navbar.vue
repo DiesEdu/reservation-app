@@ -124,15 +124,11 @@ const handleLogout = async () => {
 .logo-icon {
   width: 90px;
   height: 45px;
-  background: var(--accent);
-  border-radius: 10px;
-  border: 2px solid var(--primary-dark);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--primary-dark);
   font-size: 1.5rem;
-  box-shadow: 0 8px 18px rgba(246, 196, 0, 0.35);
 }
 
 .logo-icon img {

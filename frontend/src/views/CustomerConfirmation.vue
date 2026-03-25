@@ -97,14 +97,6 @@
 
         <!-- Reservation Details Section -->
         <div v-else class="details-section">
-          <!-- Countdown Timer -->
-          <div v-if="countdown > 0" class="countdown-timer">
-            <i class="bi bi-clock-history"></i>
-            <span
-              >Returning to scan in <strong>{{ countdown }}</strong> seconds</span
-            >
-          </div>
-
           <div class="success-animation">
             <div class="checkmark-circle" :class="{ 'already-verified': alreadyVerified }">
               <i :class="alreadyVerified ? 'bi bi-exclamation-lg' : 'bi bi-check-lg'"></i>
@@ -148,6 +140,14 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Countdown Timer -->
+    <div v-if="countdown > 0" class="countdown-timer">
+      <i class="bi bi-clock-history"></i>
+      <span
+        >Returning to scan in <strong>{{ countdown }}</strong> seconds</span
+      >
     </div>
   </div>
 </template>
