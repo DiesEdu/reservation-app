@@ -1488,6 +1488,7 @@ const formatTime = (timeStr) => {
 /* Search */
 .search-section {
   margin-top: 2rem;
+  margin-bottom: 2rem;
 }
 .search-filters {
   display: flex;

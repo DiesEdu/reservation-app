@@ -689,7 +689,7 @@ function importReservationsFromExcel()
             }
         }
 
-        $requiredHeaders = ['name', 'company', 'position', 'email', 'phone', 'table_preference'];
+        $requiredHeaders = ['name', 'company', 'position', 'email', 'phone', 'table_preference', 'date', 'time'];
         $missingHeaders = array_diff($requiredHeaders, array_values($headerMap));
         if (!empty($missingHeaders)) {
             http_response_code(400);
@@ -700,6 +700,58 @@ function importReservationsFromExcel()
             unlink($tmpPath);
             return;
         }
+
+        $normalizeDate = function ($value) {
+            if ($value === null || $value === '') {
+                return null;
+            }
+
+            if ($value instanceof \DateTimeInterface) {
+                return $value->format('Y-m-d');
+            }
+
+            if (is_numeric($value)) {
+                return ExcelDate::excelToDateTimeObject($value)->format('Y-m-d');
+            }
+
+            $value = trim((string) $value);
+            $dateFormats = ['Y-m-d', 'd/m/Y', 'm/d/Y', 'd-m-Y', 'Y/m/d', 'Y.m.d', 'd M Y', 'M d Y'];
+            foreach ($dateFormats as $format) {
+                $dt = DateTime::createFromFormat($format, $value);
+                if ($dt !== false) {
+                    return $dt->format('Y-m-d');
+                }
+            }
+
+            $timestamp = strtotime($value);
+            return $timestamp ? date('Y-m-d', $timestamp) : null;
+        };
+
+        $normalizeTime = function ($value) {
+            if ($value === null || $value === '') {
+                return null;
+            }
+
+            if ($value instanceof \DateTimeInterface) {
+                return $value->format('H:i:s');
+            }
+
+            if (is_numeric($value)) {
+                return ExcelDate::excelToDateTimeObject($value)->format('H:i:s');
+            }
+
+            $value = trim((string) $value);
+            $timeFormats = ['H:i', 'H:i:s', 'g:i A', 'g:iA', 'H.i'];
+            foreach ($timeFormats as $format) {
+                $dt = DateTime::createFromFormat($format, $value);
+                if ($dt !== false) {
+                    return $dt->format('H:i:s');
+                }
+            }
+
+            $timestamp = strtotime($value);
+            return $timestamp ? date('H:i:s', $timestamp) : null;
+        };
 
         $inserted = 0;
         $errors = [];
@@ -752,27 +804,19 @@ function importReservationsFromExcel()
             }
 
             // Optional columns with sensible defaults
-            $dateValue = $rowValues['date'] ?? date('Y-m-d');
-            if (is_numeric($dateValue)) {
-                $dateValue = ExcelDate::excelToDateTimeObject($dateValue)->format('Y-m-d');
-            } elseif (!empty($dateValue)) {
-                $timestamp = strtotime($dateValue);
-                $dateValue = $timestamp ? date('Y-m-d', $timestamp) : date('Y-m-d');
-            } else {
-                $dateValue = date('Y-m-d');
+            $dateValue = $normalizeDate($rowValues['date'] ?? null);
+            if (!$dateValue) {
+                $errors[] = "Row {$row}: invalid or missing date (expected yyyy-mm-dd)";
+                continue;
             }
 
-            $timeValue = $rowValues['time'] ?? '00:00:00';
-            if (is_numeric($timeValue)) {
-                $timeValue = ExcelDate::excelToDateTimeObject($timeValue)->format('H:i:s');
-            } elseif (!empty($timeValue)) {
-                $timestamp = strtotime($timeValue);
-                $timeValue = $timestamp ? date('H:i:s', $timestamp) : '00:00:00';
-            } else {
-                $timeValue = '00:00:00';
+            $timeValue = $normalizeTime($rowValues['time'] ?? null);
+            if (!$timeValue) {
+                $errors[] = "Row {$row}: invalid or missing time (expected HH:mm)";
+                continue;
             }
 
-            $guests = isset($rowValues['guests']) && $rowValues['guests'] !== '' ? (int) $rowValues['guests'] : 2;
+            $guests = isset($rowValues['guests']) && $rowValues['guests'] !== '' ? (int) $rowValues['guests'] : 1;
             $specialRequests = $rowValues['special_requests'] ?? '';
 
             $insertStmt->execute([

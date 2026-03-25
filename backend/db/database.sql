@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS reservations (
     phone VARCHAR(50) NOT NULL,
     date DATE NOT NULL,
     time TIME NOT NULL,
-    guests INT NOT NULL DEFAULT 2,
+    guests INT NOT NULL DEFAULT 1,
     table_preference VARCHAR(100) NOT NULL DEFAULT 'Window Table',
     status ENUM('pending', 'confirmed', 'cancelled') NOT NULL DEFAULT 'pending',
     special_requests TEXT,
