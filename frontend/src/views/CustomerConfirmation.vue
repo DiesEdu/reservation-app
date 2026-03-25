@@ -119,119 +119,30 @@
             </p>
           </div>
 
-          <!-- Already Verified Warning -->
-          <div v-if="alreadyVerified" class="alert-verified">
-            <i class="bi bi-info-circle-fill"></i>
-            <div class="verified-content">
-              <strong>Previously Verified</strong>
-              <span
-                >This QR code was already scanned and verified on
-                {{ formatVerifiedDate(verifiedAt) }}</span
-              >
+          <!-- Prominent Table Display -->
+          <div class="table-highlight">
+            <div class="table-number">
+              <span class="table-label">Table</span>
+              <span class="table-value">{{ reservationData.table }}</span>
             </div>
-          </div>
-
-          <div class="details-card">
-            <!-- Guest Information -->
-            <div class="detail-section">
-              <h3 class="section-title">
-                <i class="bi bi-person-circle"></i>
-                Guest Information
-              </h3>
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Name</span>
-                  <span class="detail-value">{{ reservationData.name }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Email</span>
-                  <span class="detail-value">{{ reservationData.email }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Phone</span>
-                  <span class="detail-value">{{ reservationData.phone }}</span>
-                </div>
+            <div class="guest-name">
+              <span class="name-label">Guest</span>
+              <span class="name-value">{{ reservationData.name }}</span>
+            </div>
+            <div class="wrap-company-position">
+              <div class="guest-name">
+                <span class="name-label">Company</span>
+                <span class="subname-value">{{ reservationData.company }}</span>
+              </div>
+              <div class="guest-name">
+                <span class="name-label">Position</span>
+                <span class="subname-value">{{ reservationData.position }}</span>
               </div>
             </div>
-
-            <!-- Reservation Details -->
-            <div class="detail-section">
-              <h3 class="section-title">
-                <i class="bi bi-calendar-event"></i>
-                Reservation Details
-              </h3>
-              <div class="detail-grid">
-                <div class="detail-item highlight">
-                  <span class="detail-label">Date</span>
-                  <span class="detail-value">{{ formatDate(reservationData.date) }}</span>
-                </div>
-                <div class="detail-item highlight">
-                  <span class="detail-label">Time</span>
-                  <span class="detail-value">{{ reservationData.time }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Number of Guests</span>
-                  <span class="detail-value">
-                    <i class="bi bi-people-fill"></i>
-                    {{ reservationData.guests }}
-                    {{ reservationData.guests === 1 ? 'Guest' : 'Guests' }}
-                  </span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Table Preference</span>
-                  <span class="detail-value">
-                    <i class="bi bi-table"></i>
-                    {{ reservationData.table }}
-                  </span>
-                </div>
-              </div>
+            <div v-if="verifiedAt" class="verified-info">
+              <i class="bi bi-check-circle-fill"></i>
+              <span>Verified at {{ formatVerifiedDate(verifiedAt) }}</span>
             </div>
-
-            <!-- Special Requests -->
-            <div v-if="reservationData.specialRequests" class="detail-section">
-              <h3 class="section-title">
-                <i class="bi bi-chat-left-text"></i>
-                Special Requests
-              </h3>
-              <div class="special-requests">
-                <p>{{ reservationData.specialRequests }}</p>
-              </div>
-            </div>
-
-            <!-- Status Badge -->
-            <div class="status-section">
-              <div class="status-badge" :class="statusClass">
-                <i :class="statusIcon"></i>
-                <span>{{ statusText }}</span>
-              </div>
-            </div>
-
-            <!-- Reservation Code -->
-            <div class="code-section">
-              <p class="code-label">Reservation Code</p>
-              <div class="code-display">
-                <span class="code-value">{{ reservationCode }}</span>
-                <button
-                  @click="copyCode"
-                  class="btn-copy"
-                  :title="copied ? 'Copied!' : 'Copy code'"
-                >
-                  <i :class="copied ? 'bi bi-check-lg' : 'bi bi-clipboard'"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="action-buttons">
-            <button @click="resetScanner" class="btn-secondary">
-              <i class="bi bi-arrow-left"></i>
-              Scan Another Code
-            </button>
-            <button @click="printConfirmation" class="btn-primary">
-              <i class="bi bi-printer"></i>
-              Print Confirmation
-            </button>
           </div>
         </div>
       </div>
@@ -269,7 +180,7 @@ const reservationData = ref(null)
 const reservationCode = ref('')
 const errorMessage = ref('')
 const loading = ref(false)
-const copied = ref(false)
+// const copied = ref(false)
 const alreadyVerified = ref(false)
 const verifiedAt = ref(null)
 const countdown = ref(0)
@@ -277,35 +188,35 @@ let countdownTimer = null
 let html5QrCode = null
 
 // Computed
-const statusClass = computed(() => {
-  if (!reservationData.value) return ''
-  const status = reservationData.value.status
-  return {
-    confirmed: 'status-confirmed',
-    pending: 'status-pending',
-    cancelled: 'status-cancelled',
-  }[status]
-})
+// const statusClass = computed(() => {
+//   if (!reservationData.value) return ''
+//   const status = reservationData.value.status
+//   return {
+//     confirmed: 'status-confirmed',
+//     pending: 'status-pending',
+//     cancelled: 'status-cancelled',
+//   }[status]
+// })
 
-const statusIcon = computed(() => {
-  if (!reservationData.value) return ''
-  const status = reservationData.value.status
-  return {
-    confirmed: 'bi bi-check-circle-fill',
-    pending: 'bi bi-hourglass-split',
-    cancelled: 'bi bi-x-circle-fill',
-  }[status]
-})
+// const statusIcon = computed(() => {
+//   if (!reservationData.value) return ''
+//   const status = reservationData.value.status
+//   return {
+//     confirmed: 'bi bi-check-circle-fill',
+//     pending: 'bi bi-hourglass-split',
+//     cancelled: 'bi bi-x-circle-fill',
+//   }[status]
+// })
 
-const statusText = computed(() => {
-  if (!reservationData.value) return ''
-  const status = reservationData.value.status
-  return {
-    confirmed: 'Confirmed',
-    pending: 'Pending Confirmation',
-    cancelled: 'Cancelled',
-  }[status]
-})
+// const statusText = computed(() => {
+//   if (!reservationData.value) return ''
+//   const status = reservationData.value.status
+//   return {
+//     confirmed: 'Confirmed',
+//     pending: 'Pending Confirmation',
+//     cancelled: 'Cancelled',
+//   }[status]
+// })
 
 // Methods
 const startScanner = async () => {
@@ -448,15 +359,15 @@ const resetScanner = () => {
   })
 }
 
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
+// const formatDate = (dateString) => {
+//   const date = new Date(dateString)
+//   return date.toLocaleDateString('en-US', {
+//     weekday: 'long',
+//     year: 'numeric',
+//     month: 'long',
+//     day: 'numeric',
+//   })
+// }
 
 const formatVerifiedDate = (dateString) => {
   if (!dateString) return 'Unknown date'
@@ -471,21 +382,21 @@ const formatVerifiedDate = (dateString) => {
   })
 }
 
-const copyCode = async () => {
-  try {
-    await navigator.clipboard.writeText(reservationCode.value)
-    copied.value = true
-    setTimeout(() => {
-      copied.value = false
-    }, 2000)
-  } catch (err) {
-    console.error('Failed to copy:', err)
-  }
-}
+// const copyCode = async () => {
+//   try {
+//     await navigator.clipboard.writeText(reservationCode.value)
+//     copied.value = true
+//     setTimeout(() => {
+//       copied.value = false
+//     }, 2000)
+//   } catch (err) {
+//     console.error('Failed to copy:', err)
+//   }
+// }
 
-const printConfirmation = () => {
-  window.print()
-}
+// const printConfirmation = () => {
+//   window.print()
+// }
 
 const particleStyle = () => ({
   left: `${Math.random() * 100}%`,
@@ -603,7 +514,7 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(135deg, #d4af37 0%, #aa8a2e 100%);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.5) 0%, rgba(170, 138, 46, 0.5) 100%);
   color: #0a0a0a;
   padding: 0.75rem 1rem;
   display: flex;
@@ -1092,6 +1003,104 @@ onUnmounted(() => {
 
 .success-subtitle {
   color: rgba(244, 229, 194, 0.6);
+  font-size: 1rem;
+}
+
+/* Table Highlight Section */
+.table-highlight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 2rem;
+  margin: 1.5rem auto 2rem;
+  background: linear-gradient(145deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 165, 116, 0.1) 100%);
+  border: 2px solid rgba(212, 175, 55, 0.4);
+  border-radius: 20px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: slideIn 0.6s ease-out;
+}
+
+.table-number {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.table-label {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(244, 229, 194, 0.6);
+  margin-bottom: 0.5rem;
+}
+
+.table-value {
+  font-family: 'Playfair Display', serif;
+  font-size: 5rem;
+  font-weight: 700;
+  color: #d4af37;
+  line-height: 1;
+  text-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
+}
+
+.guest-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(244, 229, 194, 0.05);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.wrap-company-position {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+.name-label {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(244, 229, 194, 0.5);
+  margin-bottom: 0.25rem;
+}
+
+.name-value {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  color: #f4e5c2;
+  font-weight: 600;
+}
+
+.subname-value {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  color: #f4e5c2;
+  font-weight: 300;
+}
+
+.verified-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: rgba(40, 167, 69, 0.9);
+  padding: 0.5rem 1rem;
+  background: rgba(40, 167, 69, 0.1);
+  border-radius: 20px;
+}
+
+.verified-info i {
   font-size: 1rem;
 }
 

@@ -407,6 +407,8 @@ function getReservation($id)
         $formatted = [
             'id' => (int) $reservation['id'],
             'name' => $reservation['name'],
+            'position' => $reservation['position'],
+            'company' => $reservation['company'],
             'email' => $reservation['email'],
             'phone' => $reservation['phone'],
             'date' => $reservation['date'],
@@ -499,6 +501,8 @@ function createReservation()
         $formatted = [
             'id' => (int) $reservation['id'],
             'name' => $reservation['name'],
+            'position' => $reservation['position'],
+            'company' => $reservation['company'],
             'email' => $reservation['email'],
             'phone' => $reservation['phone'],
             'date' => $reservation['date'],
@@ -789,6 +793,8 @@ function updateReservation($id)
         $formatted = [
             'id' => (int) $reservation['id'],
             'name' => $reservation['name'],
+            'position' => $reservation['position'],
+            'company' => $reservation['company'],
             'email' => $reservation['email'],
             'phone' => $reservation['phone'],
             'date' => $reservation['date'],
@@ -936,6 +942,8 @@ function verifyReservation()
             $formatted = [
                 'id' => (int) $reservation['id'],
                 'name' => $reservation['name'],
+                'position' => $reservation['position'],
+                'company' => $reservation['company'],
                 'email' => $reservation['email'],
                 'phone' => $reservation['phone'],
                 'date' => $reservation['date'],
@@ -988,6 +996,8 @@ function verifyReservation()
         $formatted = [
             'id' => (int) $reservation['id'],
             'name' => $reservation['name'],
+            'position' => $reservation['position'],
+            'company' => $reservation['company'],
             'email' => $reservation['email'],
             'phone' => $reservation['phone'],
             'date' => $reservation['date'],
