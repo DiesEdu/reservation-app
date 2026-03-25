@@ -64,6 +64,158 @@
             </div>
           </section>
 
+          <!-- Search and Filter Table -->
+          <section class="search-section">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3 class="chart-title">
+                  <i class="bi bi-search"></i>
+                  Customer Search & Reservations
+                </h3>
+              </div>
+              <div class="chart-body">
+                <!-- Search and Filters -->
+                <div class="search-filters">
+                  <div class="search-input-group">
+                    <i class="bi bi-search"></i>
+                    <input
+                      v-model="searchQuery"
+                      type="text"
+                      placeholder="Search by name, email, or phone..."
+                      class="search-input"
+                    />
+                  </div>
+                  <div class="filter-group">
+                    <select v-model="statusFilter" class="filter-select">
+                      <option value="">All Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                    <input
+                      v-model="dateFilter"
+                      type="date"
+                      class="date-input"
+                      placeholder="Filter by date"
+                    />
+                    <button @click="clearFilters" class="btn-clear">
+                      <i class="bi bi-x-circle"></i>
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Results Count -->
+                <div class="results-info">
+                  <span
+                    >Showing {{ searchResults.length }} of
+                    {{ filteredReservations.length }} reservations</span
+                  >
+                </div>
+
+                <!-- Data Table -->
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th @click="sortBy('name')" class="sortable">
+                          Customer
+                          <i v-if="sortField === 'name'" :class="sortIcon"></i>
+                        </th>
+                        <th>Contact</th>
+                        <th @click="sortBy('date')" class="sortable">
+                          Date
+                          <i v-if="sortField === 'date'" :class="sortIcon"></i>
+                        </th>
+                        <th @click="sortBy('time')" class="sortable">
+                          Time
+                          <i v-if="sortField === 'time'" :class="sortIcon"></i>
+                        </th>
+                        <th @click="sortBy('guests')" class="sortable">
+                          Guests
+                          <i v-if="sortField === 'guests'" :class="sortIcon"></i>
+                        </th>
+                        <th>Table</th>
+                        <th @click="sortBy('status')" class="sortable">
+                          Status
+                          <i v-if="sortField === 'status'" :class="sortIcon"></i>
+                        </th>
+                        <th>Verified</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="reservation in paginatedResults" :key="reservation.id">
+                        <td>
+                          <div class="customer-cell">
+                            <div class="customer-avatar">
+                              {{ reservation.name.charAt(0).toUpperCase() }}
+                            </div>
+                            <div class="customer-info">
+                              <span class="customer-name">{{ reservation.name }}</span>
+                              <span class="customer-company">{{ reservation.company || '-' }}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div class="contact-cell">
+                            <span>{{ reservation.email }}</span>
+                            <span class="phone">{{ reservation.phone }}</span>
+                          </div>
+                        </td>
+                        <td>{{ formatDate(reservation.date) }}</td>
+                        <td>{{ formatTime(reservation.time) }}</td>
+                        <td>{{ reservation.guests }}</td>
+                        <td>{{ reservation.table }}</td>
+                        <td>
+                          <span class="status-badge" :class="reservation.status">
+                            {{ reservation.status }}
+                          </span>
+                        </td>
+                        <td>
+                          <span class="verified-badge" :class="{ verified: reservation.verified }">
+                            <i
+                              :class="
+                                reservation.verified ? 'bi bi-check-circle-fill' : 'bi bi-x-circle'
+                              "
+                            ></i>
+                            {{ reservation.verified ? 'Yes' : 'No' }}
+                          </span>
+                        </td>
+                      </tr>
+                      <tr v-if="paginatedResults.length === 0">
+                        <td colspan="8" class="empty-message">
+                          <i class="bi bi-inbox"></i>
+                          No reservations found
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="totalPages > 1" class="pagination">
+                  <button
+                    @click="currentPage--"
+                    :disabled="currentPage === 1"
+                    class="btn-pagination"
+                  >
+                    <i class="bi bi-chevron-left"></i>
+                    Previous
+                  </button>
+                  <span class="page-info"> Page {{ currentPage }} of {{ totalPages }} </span>
+                  <button
+                    @click="currentPage++"
+                    :disabled="currentPage === totalPages"
+                    class="btn-pagination"
+                  >
+                    Next
+                    <i class="bi bi-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <!-- Charts Row -->
           <section class="charts-section">
             <div class="row g-4">
@@ -294,158 +446,6 @@
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Search and Filter Table -->
-          <section class="search-section">
-            <div class="chart-card">
-              <div class="chart-header">
-                <h3 class="chart-title">
-                  <i class="bi bi-search"></i>
-                  Customer Search & Reservations
-                </h3>
-              </div>
-              <div class="chart-body">
-                <!-- Search and Filters -->
-                <div class="search-filters">
-                  <div class="search-input-group">
-                    <i class="bi bi-search"></i>
-                    <input
-                      v-model="searchQuery"
-                      type="text"
-                      placeholder="Search by name, email, or phone..."
-                      class="search-input"
-                    />
-                  </div>
-                  <div class="filter-group">
-                    <select v-model="statusFilter" class="filter-select">
-                      <option value="">All Status</option>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                    <input
-                      v-model="dateFilter"
-                      type="date"
-                      class="date-input"
-                      placeholder="Filter by date"
-                    />
-                    <button @click="clearFilters" class="btn-clear">
-                      <i class="bi bi-x-circle"></i>
-                      Clear
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Results Count -->
-                <div class="results-info">
-                  <span
-                    >Showing {{ searchResults.length }} of
-                    {{ filteredReservations.length }} reservations</span
-                  >
-                </div>
-
-                <!-- Data Table -->
-                <div class="table-responsive">
-                  <table class="data-table">
-                    <thead>
-                      <tr>
-                        <th @click="sortBy('name')" class="sortable">
-                          Customer
-                          <i v-if="sortField === 'name'" :class="sortIcon"></i>
-                        </th>
-                        <th>Contact</th>
-                        <th @click="sortBy('date')" class="sortable">
-                          Date
-                          <i v-if="sortField === 'date'" :class="sortIcon"></i>
-                        </th>
-                        <th @click="sortBy('time')" class="sortable">
-                          Time
-                          <i v-if="sortField === 'time'" :class="sortIcon"></i>
-                        </th>
-                        <th @click="sortBy('guests')" class="sortable">
-                          Guests
-                          <i v-if="sortField === 'guests'" :class="sortIcon"></i>
-                        </th>
-                        <th>Table</th>
-                        <th @click="sortBy('status')" class="sortable">
-                          Status
-                          <i v-if="sortField === 'status'" :class="sortIcon"></i>
-                        </th>
-                        <th>Verified</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="reservation in paginatedResults" :key="reservation.id">
-                        <td>
-                          <div class="customer-cell">
-                            <div class="customer-avatar">
-                              {{ reservation.name.charAt(0).toUpperCase() }}
-                            </div>
-                            <div class="customer-info">
-                              <span class="customer-name">{{ reservation.name }}</span>
-                              <span class="customer-company">{{ reservation.company || '-' }}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div class="contact-cell">
-                            <span>{{ reservation.email }}</span>
-                            <span class="phone">{{ reservation.phone }}</span>
-                          </div>
-                        </td>
-                        <td>{{ formatDate(reservation.date) }}</td>
-                        <td>{{ formatTime(reservation.time) }}</td>
-                        <td>{{ reservation.guests }}</td>
-                        <td>{{ reservation.table_preference }}</td>
-                        <td>
-                          <span class="status-badge" :class="reservation.status">
-                            {{ reservation.status }}
-                          </span>
-                        </td>
-                        <td>
-                          <span class="verified-badge" :class="{ verified: reservation.verified }">
-                            <i
-                              :class="
-                                reservation.verified ? 'bi bi-check-circle-fill' : 'bi bi-x-circle'
-                              "
-                            ></i>
-                            {{ reservation.verified ? 'Yes' : 'No' }}
-                          </span>
-                        </td>
-                      </tr>
-                      <tr v-if="paginatedResults.length === 0">
-                        <td colspan="8" class="empty-message">
-                          <i class="bi bi-inbox"></i>
-                          No reservations found
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <!-- Pagination -->
-                <div v-if="totalPages > 1" class="pagination">
-                  <button
-                    @click="currentPage--"
-                    :disabled="currentPage === 1"
-                    class="btn-pagination"
-                  >
-                    <i class="bi bi-chevron-left"></i>
-                    Previous
-                  </button>
-                  <span class="page-info"> Page {{ currentPage }} of {{ totalPages }} </span>
-                  <button
-                    @click="currentPage++"
-                    :disabled="currentPage === totalPages"
-                    class="btn-pagination"
-                  >
-                    Next
-                    <i class="bi bi-chevron-right"></i>
-                  </button>
                 </div>
               </div>
             </div>
@@ -1004,7 +1004,10 @@ const formatTime = (timeStr) => {
   align-items: center;
   gap: 1rem;
   box-shadow: var(--shadow);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .stat-card:hover {
@@ -1065,11 +1068,17 @@ const formatTime = (timeStr) => {
   gap: 0.3rem;
 }
 
-.stat-trend.positive { color: #28a745; }
-.stat-trend.negative { color: #dc3545; }
+.stat-trend.positive {
+  color: #28a745;
+}
+.stat-trend.negative {
+  color: #dc3545;
+}
 
 /* Cards */
-.charts-section { margin-bottom: 2rem; }
+.charts-section {
+  margin-bottom: 2rem;
+}
 
 .chart-card {
   background: #ffffff;
@@ -1092,30 +1101,99 @@ const formatTime = (timeStr) => {
   margin: 0;
 }
 
-.chart-body { padding: 1.4rem; }
+.chart-body {
+  padding: 1.4rem;
+}
 
 /* Donut */
-.donut-chart { position: relative; width: 180px; height: 180px; margin: 0 auto 1.5rem; }
-.donut { transform: rotate(-90deg); }
-.donut circle { animation: drawCircle 1s ease-out forwards; stroke-linecap: round; }
-@keyframes drawCircle { from { stroke-dasharray: 0 251.2; } }
+.donut-chart {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 1.5rem;
+}
+.donut {
+  transform: rotate(-90deg);
+}
+.donut circle {
+  animation: drawCircle 1s ease-out forwards;
+  stroke-linecap: round;
+}
+@keyframes drawCircle {
+  from {
+    stroke-dasharray: 0 251.2;
+  }
+}
 
-.donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-.donut-total { display: block; font-size: 2rem; font-weight: 800; color: var(--primary-dark); line-height: 1; }
-.donut-label { font-size: 0.8rem; color: #5b6b86; }
+.donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.donut-total {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary-dark);
+  line-height: 1;
+}
+.donut-label {
+  font-size: 0.8rem;
+  color: #5b6b86;
+}
 
-.chart-legend { display: flex; flex-direction: column; gap: 0.7rem; }
-.legend-item { display: flex; align-items: center; gap: 0.5rem; }
-.legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-.legend-label { flex: 1; font-size: 0.9rem; color: var(--primary-dark); }
-.legend-value { font-weight: 700; color: var(--primary-dark); }
-.legend-percent { font-size: 0.8rem; color: #5b6b86; width: 40px; text-align: right; }
+.chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-label {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--primary-dark);
+}
+.legend-value {
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.legend-percent {
+  font-size: 0.8rem;
+  color: #5b6b86;
+  width: 40px;
+  text-align: right;
+}
 
 /* Bar Chart */
-.bar-chart { display: flex; justify-content: space-between; align-items: flex-end; height: 200px; gap: 0.5rem; }
-.bar-container { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+.bar-chart {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 200px;
+  gap: 0.5rem;
+}
+.bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
 .bar {
-  width: 100%; max-width: 42px;
+  width: 100%;
+  max-width: 42px;
   background: linear-gradient(180deg, var(--primary) 0%, rgba(31, 79, 163, 0.45) 100%);
   border-radius: 8px 8px 0 0;
   min-height: 6px;
@@ -1123,124 +1201,519 @@ const formatTime = (timeStr) => {
   transition: all 0.3s ease;
   animation: growBar 0.8s ease-out forwards;
 }
-@keyframes growBar { from { height: 0 !important; } }
-.bar:hover { filter: brightness(1.05); box-shadow: 0 14px 24px rgba(31, 79, 163, 0.22); }
-.bar-value { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-size: 0.8rem; font-weight: 700; color: var(--primary-dark); }
-.bar-label { font-size: 0.75rem; color: #5b6b86; margin-top: 0.5rem; }
+@keyframes growBar {
+  from {
+    height: 0 !important;
+  }
+}
+.bar:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 14px 24px rgba(31, 79, 163, 0.22);
+}
+.bar-value {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.bar-label {
+  font-size: 0.75rem;
+  color: #5b6b86;
+  margin-top: 0.5rem;
+}
 
 /* Guests */
-.guests-chart { display: flex; flex-direction: column; gap: 1rem; }
-.guest-bar { display: flex; align-items: center; gap: 1rem; }
-.guest-bar-wrapper { flex: 1; height: 22px; background: #f2f5ff; border-radius: 12px; overflow: hidden; }
-.guest-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--primary) 100%); border-radius: 12px; transition: width 0.8s ease-out; }
-.guest-range { width: 82px; font-size: 0.85rem; color: var(--primary-dark); }
-.guest-count { width: 34px; text-align: right; font-weight: 700; color: var(--primary-dark); }
+.guests-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.guest-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.guest-bar-wrapper {
+  flex: 1;
+  height: 22px;
+  background: #f2f5ff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.guest-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--primary) 100%);
+  border-radius: 12px;
+  transition: width 0.8s ease-out;
+}
+.guest-range {
+  width: 82px;
+  font-size: 0.85rem;
+  color: var(--primary-dark);
+}
+.guest-count {
+  width: 34px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
 
 /* Timeline */
-.timeline-chart { display: flex; flex-direction: column; gap: 0.75rem; }
-.timeline-row { display: flex; align-items: center; gap: 1rem; }
-.timeline-time { width: 70px; font-size: 0.85rem; color: #5b6b86; }
-.timeline-bar-wrapper { flex: 1; height: 16px; background: #eef2fb; border-radius: 10px; overflow: hidden; }
-.timeline-bar { height: 100%; background: linear-gradient(90deg, rgba(31, 79, 163, 0.15) 0%, var(--primary) 100%); border-radius: 10px; transition: width 0.8s ease-out; }
-.timeline-count { width: 28px; text-align: right; font-size: 0.9rem; font-weight: 700; color: var(--primary-dark); }
+.timeline-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.timeline-time {
+  width: 70px;
+  font-size: 0.85rem;
+  color: #5b6b86;
+}
+.timeline-bar-wrapper {
+  flex: 1;
+  height: 16px;
+  background: #eef2fb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.timeline-bar {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(31, 79, 163, 0.15) 0%, var(--primary) 100%);
+  border-radius: 10px;
+  transition: width 0.8s ease-out;
+}
+.timeline-count {
+  width: 28px;
+  text-align: right;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
 
 /* Table grid */
-.table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; }
-.table-card { background: #f6f8ff; border: 1px solid var(--border); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.45rem; transition: all 0.3s ease; }
-.table-card.occupied { border-color: rgba(31, 79, 163, 0.3); background: #eaf1ff; }
-.table-icon { font-size: 1.5rem; color: #5b6b86; }
-.table-card.occupied .table-icon { color: var(--primary); }
-.table-number { font-weight: 700; color: var(--primary-dark); font-size: 0.95rem; }
-.table-capacity { font-size: 0.8rem; color: #5b6b86; }
-.status-count { display: block; font-size: 1.2rem; font-weight: 800; color: var(--primary-dark); }
-.status-label { font-size: 0.7rem; color: #5b6b86; text-transform: uppercase; }
+.table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+.table-card {
+  background: #f6f8ff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  transition: all 0.3s ease;
+}
+.table-card.occupied {
+  border-color: rgba(31, 79, 163, 0.3);
+  background: #eaf1ff;
+}
+.table-icon {
+  font-size: 1.5rem;
+  color: #5b6b86;
+}
+.table-card.occupied .table-icon {
+  color: var(--primary);
+}
+.table-number {
+  font-weight: 700;
+  color: var(--primary-dark);
+  font-size: 0.95rem;
+}
+.table-capacity {
+  font-size: 0.8rem;
+  color: #5b6b86;
+}
+.status-count {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.status-label {
+  font-size: 0.7rem;
+  color: #5b6b86;
+  text-transform: uppercase;
+}
 
 /* Activity */
-.activity-section { margin-bottom: 2rem; }
-.activity-list { display: flex; flex-direction: column; gap: 0.9rem; }
-.activity-item { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: #f6f8ff; border-radius: 10px; border: 1px solid var(--border); transition: transform 0.2s ease, box-shadow 0.2s ease; }
-.activity-item:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(31, 79, 163, 0.12); }
-.activity-avatar { width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary) 0%, #8cc4ff 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem; }
-.activity-name { display: block; font-weight: 600; color: var(--primary-dark); font-size: 0.95rem; }
-.activity-meta { font-size: 0.85rem; color: #5b6b86; }
-.activity-status { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; padding: 0.25rem 0.55rem; border-radius: 6px; }
-.activity-status.confirmed { background: rgba(126, 217, 87, 0.2); color: #1f7a2f; }
-.activity-status.pending { background: rgba(246, 196, 0, 0.22); color: #b87400; }
-.activity-status.cancelled { background: rgba(255, 107, 107, 0.2); color: #c92c3a; }
+.activity-section {
+  margin-bottom: 2rem;
+}
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f6f8ff;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.activity-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(31, 79, 163, 0.12);
+}
+.activity-avatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--primary) 0%, #8cc4ff 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1rem;
+}
+.activity-name {
+  display: block;
+  font-weight: 600;
+  color: var(--primary-dark);
+  font-size: 0.95rem;
+}
+.activity-meta {
+  font-size: 0.85rem;
+  color: #5b6b86;
+}
+.activity-status {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+}
+.activity-status.confirmed {
+  background: rgba(126, 217, 87, 0.2);
+  color: #1f7a2f;
+}
+.activity-status.pending {
+  background: rgba(246, 196, 0, 0.22);
+  color: #b87400;
+}
+.activity-status.cancelled {
+  background: rgba(255, 107, 107, 0.2);
+  color: #c92c3a;
+}
 
 /* Insights */
-.insights-list { display: flex; flex-direction: column; gap: 1rem; }
-.insight-item { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #f6f8ff; border-radius: 12px; border: 1px solid var(--border); }
-.insight-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: #0f172a; }
-.insight-icon.success { background: rgba(126, 217, 87, 0.3); }
-.insight-icon.warning { background: rgba(246, 196, 0, 0.3); }
-.insight-icon.info { background: rgba(140, 196, 255, 0.35); }
-.insight-icon.gold { background: rgba(255, 214, 77, 0.35); }
-.insight-label { display: block; font-size: 0.9rem; color: #5b6b86; }
-.insight-value { font-size: 1.35rem; font-weight: 800; color: var(--primary-dark); }
+.insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.insight-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f6f8ff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.insight-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: #0f172a;
+}
+.insight-icon.success {
+  background: rgba(126, 217, 87, 0.3);
+}
+.insight-icon.warning {
+  background: rgba(246, 196, 0, 0.3);
+}
+.insight-icon.info {
+  background: rgba(140, 196, 255, 0.35);
+}
+.insight-icon.gold {
+  background: rgba(255, 214, 77, 0.35);
+}
+.insight-label {
+  display: block;
+  font-size: 0.9rem;
+  color: #5b6b86;
+}
+.insight-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
 
 /* Search */
-.search-section { margin-top: 2rem; }
-.search-filters { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.2rem; align-items: center; }
-.search-input-group { flex: 1; min-width: 280px; position: relative; }
-.search-input-group i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #8a97af; }
+.search-section {
+  margin-top: 2rem;
+}
+.search-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+  align-items: center;
+}
+.search-input-group {
+  flex: 1;
+  min-width: 280px;
+  position: relative;
+}
+.search-input-group i {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8a97af;
+}
 .search-input {
-  width: 100%; padding: 0.75rem 1rem 0.75rem 2.75rem;
-  background: #ffffff; border: 1px solid var(--border); border-radius: 10px;
-  color: var(--primary-dark); font-size: 0.95rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--primary-dark);
+  font-size: 0.95rem;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
-.search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(31, 79, 163, 0.12); }
-.filter-group { display: flex; gap: 0.75rem; align-items: center; }
-.filter-select, .date-input {
-  padding: 0.75rem 1rem; background: #ffffff; border: 1px solid var(--border); border-radius: 10px;
-  color: var(--primary-dark); font-size: 0.95rem; cursor: pointer; transition: border-color 0.2s;
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(31, 79, 163, 0.12);
 }
-.filter-select:focus, .date-input:focus { outline: none; border-color: var(--primary); }
-.date-input { color-scheme: light; }
-.btn-clear { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; background: #f6f8ff; border: 1px solid var(--border); border-radius: 10px; color: var(--primary-dark); cursor: pointer; }
-.btn-clear:hover { background: #eaf1ff; }
-.results-info { margin-bottom: 1rem; color: #5b6b86; font-size: 0.95rem; }
+.filter-group {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.filter-select,
+.date-input {
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--primary-dark);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.filter-select:focus,
+.date-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.date-input {
+  color-scheme: light;
+}
+.btn-clear {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f6f8ff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+.btn-clear:hover {
+  background: #eaf1ff;
+}
+.results-info {
+  margin-bottom: 1rem;
+  color: #5b6b86;
+  font-size: 0.95rem;
+}
 
 /* Data Table */
-.table-responsive { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
-.data-table th, .data-table td { padding: 0.95rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
-.data-table th { background: #f6f8ff; color: var(--primary-dark); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; cursor: default; }
-.data-table th.sortable { cursor: pointer; }
-.data-table th.sortable:hover { background: #eaf1ff; }
-.data-table td { color: #42506a; font-size: 0.95rem; }
-.data-table tbody tr:hover { background: #f9fbff; }
-.customer-cell { display: flex; align-items: center; gap: 0.75rem; }
-.customer-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent) 0%, #ffd84d 100%); display: flex; align-items: center; justify-content: center; color: #0f172a; font-weight: 700; font-size: 0.9rem; }
-.customer-name { color: var(--primary-dark); font-weight: 600; }
-.customer-company { color: #8a97af; font-size: 0.85rem; }
-.contact-cell { display: flex; flex-direction: column; }
-.contact-cell .phone { color: #8a97af; font-size: 0.85rem; }
-.status-badge { display: inline-block; padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.78rem; font-weight: 700; text-transform: capitalize; }
-.status-badge.pending { background: rgba(246, 196, 0, 0.18); color: #b87400; }
-.status-badge.confirmed { background: rgba(126, 217, 87, 0.2); color: #1f7a2f; }
-.status-badge.cancelled { background: rgba(255, 107, 107, 0.2); color: #c92c3a; }
-.verified-badge { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: #c92c3a; }
-.verified-badge.verified { color: #1f7a2f; }
-.empty-message { text-align: center; padding: 2.5rem !important; color: #8a97af; }
-.empty-message i { font-size: 2rem; display: block; margin-bottom: 0.5rem; color: var(--primary); }
+.table-responsive {
+  overflow-x: auto;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.data-table th,
+.data-table td {
+  padding: 0.95rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.data-table th {
+  background: #f6f8ff;
+  color: var(--primary-dark);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: default;
+}
+.data-table th.sortable {
+  cursor: pointer;
+}
+.data-table th.sortable:hover {
+  background: #eaf1ff;
+}
+.data-table td {
+  color: #42506a;
+  font-size: 0.95rem;
+}
+.data-table tbody tr:hover {
+  background: #f9fbff;
+}
+.customer-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.customer-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, #ffd84d 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.customer-name {
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+.customer-company {
+  color: #8a97af;
+  font-size: 0.85rem;
+}
+.contact-cell {
+  display: flex;
+  flex-direction: column;
+}
+.contact-cell .phone {
+  color: #8a97af;
+  font-size: 0.85rem;
+}
+.status-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.status-badge.pending {
+  background: rgba(246, 196, 0, 0.18);
+  color: #b87400;
+}
+.status-badge.confirmed {
+  background: rgba(126, 217, 87, 0.2);
+  color: #1f7a2f;
+}
+.status-badge.cancelled {
+  background: rgba(255, 107, 107, 0.2);
+  color: #c92c3a;
+}
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #c92c3a;
+}
+.verified-badge.verified {
+  color: #1f7a2f;
+}
+.empty-message {
+  text-align: center;
+  padding: 2.5rem !important;
+  color: #8a97af;
+}
+.empty-message i {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--primary);
+}
 
 /* Pagination */
-.pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
-.page-info { color: #5b6b86; font-size: 0.95rem; }
-.btn-pagination { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 1rem; background: #f6f8ff; border: 1px solid var(--border); border-radius: 8px; color: var(--primary-dark); cursor: pointer; transition: all 0.2s; }
-.btn-pagination:hover:not(:disabled) { background: #eaf1ff; }
-.btn-pagination:disabled { opacity: 0.55; cursor: not-allowed; }
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.page-info {
+  color: #5b6b86;
+  font-size: 0.95rem;
+}
+.btn-pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  background: #f6f8ff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--primary-dark);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-pagination:hover:not(:disabled) {
+  background: #eaf1ff;
+}
+.btn-pagination:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
 /* Responsive */
 @media (max-width: 768px) {
-  .page-title { font-size: 1.6rem; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .bar-chart { height: 150px; }
-  .table-grid { grid-template-columns: repeat(2, 1fr); }
-  .search-filters { flex-direction: column; align-items: stretch; }
-  .filter-group { flex-wrap: wrap; }
+  .page-title {
+    font-size: 1.6rem;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bar-chart {
+    height: 150px;
+  }
+  .table-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .search-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-group {
+    flex-wrap: wrap;
+  }
 }
 </style>
-
