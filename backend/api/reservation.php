@@ -114,7 +114,7 @@ function renderReservationTicket($id)
             return;
         }
 
-        $templatePath = __DIR__ . '/../templates/ticket-halal_bihalal.png';
+        $templatePath = __DIR__ . '/../templates/plain-reservation.png';
         if (!file_exists($templatePath)) {
             http_response_code(500);
             header('Content-Type: application/json');
@@ -142,7 +142,7 @@ function renderReservationTicket($id)
         $width = imagesx($image);
         $height = imagesy($image);
 
-        $fontPathCustom = __DIR__ . '/../fonts/IBMPlexSerif-Regular.ttf';
+        $fontPathCustom = __DIR__ . '/../templates/fonts/IBMPlexSerif-Regular.ttf';
 
         $fontPath = resolveTicketFont();
         $canUseTtf = $fontPath && function_exists('imagettftext');
@@ -153,7 +153,7 @@ function renderReservationTicket($id)
         $name = $reservation['name'];
         $position = $reservation['position'];
         $company = $reservation['company'];
-        $table = $reservation['table_preference'];
+        $table = 'Table: ' . $reservation['table_preference'];
         $qrData = $reservation['qr_code'];
 
         $nameSize = max(28, (int) ($width * 0.035));
@@ -162,33 +162,39 @@ function renderReservationTicket($id)
         $tableSize = max(22, (int) ($width * 0.025));
 
         // Vertical layout: name -> QR -> table
-        $nameY = (int) ($height * 0.36);
-        $companyY = (int) ($height * 0.43);
-        $positionY = (int) ($height * 0.50);
-        $qrGapBottom = (int) ($height * 0.05);
+        $nameY = (int) ($height * 0.71);
+        $companyY = (int) ($height * 0.76);
+        $positionY = (int) ($height * 0.79);
+        $qrGapBottom = (int) ($height * 0.03);
         $tableY = null; // set after QR position is known
 
         if ($canUseTtf) {
-            drawLeftedTtfText($image, $nameSize, 100, $nameY, $fontPath, $name, $textColor, $shadowColor);
+            // drawLeftedTtfText($image, $nameSize, 100, $nameY, $fontPath, $name, $textColor, $shadowColor);
+            drawCenteredTtfText($image, $nameSize, $nameY, $fontPath, $name, $textColor, $shadowColor);
         } else {
             // Fallback to built-in GD font if TTF support is missing
-            drawLeftedGdText($image, $fontPathCustom, 25, 100, $nameY, strtoupper($name), $textColor);
+            // drawLeftedGdText($image, $fontPathCustom, 25, 100, $nameY, strtoupper($name), $textColor);
+            drawCenteredGdText($image, $fontPathCustom, 25, $nameY, strtoupper($name), $textColor);
         }
 
         // Draw position if available
         if ($canUseTtf && !empty($position)) {
-            drawLeftedTtfText($image, $positionSize, 100, $positionY, $fontPath, $position, $textColor, $shadowColor);
+            // drawLeftedTtfText($image, $positionSize, 100, $positionY, $fontPath, $position, $textColor, $shadowColor);
+            drawCenteredTtfText($image, $positionSize, $positionY, $fontPath, $position, $textColor, $shadowColor);
         } elseif (!empty($position)) {
             // Fallback to built-in GD font if TTF support is missing
-            drawLeftedGdText($image, $fontPathCustom, 20, 100, $positionY, strtoupper($position), $textColor);
+            // drawLeftedGdText($image, $fontPathCustom, 20, 100, $positionY, strtoupper($position), $textColor);
+            drawCenteredGdText($image, $fontPathCustom, 15, $positionY, strtoupper($position), $textColor);
         }
 
         // Draw company if available
         if ($canUseTtf && !empty($company)) {
-            drawLeftedTtfText($image, $companySize, 100, $companyY, $fontPath, $company, $textColor, $shadowColor);
+            // drawLeftedTtfText($image, $companySize, 100, $companyY, $fontPath, $company, $textColor, $shadowColor);
+            drawCenteredTtfText($image, $companySize, $companyY, $fontPath, $company, $textColor, $shadowColor);
         } elseif (!empty($company)) {
             // Fallback to built-in GD font if TTF support is missing
-            drawLeftedGdText($image, $fontPathCustom, 20, 100, $companyY, strtoupper($company), $textColor);
+            // drawLeftedGdText($image, $fontPathCustom, 20, 100, $companyY, strtoupper($company), $textColor);
+            drawCenteredGdText($image, $fontPathCustom, 15, $companyY, strtoupper($company), $textColor);
         }
 
         // Add QR code (uses reservation.qr_code value)
@@ -198,7 +204,8 @@ function renderReservationTicket($id)
             if ($qrImage) {
                 $qrWidth = imagesx($qrImage);
                 $qrHeight = imagesy($qrImage);
-                $qrX = (int) (700);
+                // $qrX = (int) (700);
+                $qrX = (int) (($width - $qrWidth) / 2);
                 $qrY = (int) ($height * 0.34);
 
                 imagecopy(
@@ -226,9 +233,11 @@ function renderReservationTicket($id)
         }
 
         if ($canUseTtf) {
-            drawLeftedTtfText($image, $tableSize, 700, $tableY, $fontPath, $table, $textColor, $shadowColor);
+            // drawLeftedTtfText($image, $tableSize, 700, $tableY, $fontPath, $table, $textColor, $shadowColor);
+            drawCenteredTtfText($image, $tableSize, $tableY, $fontPath, $table, $textColor, $shadowColor);
         } else {
-            drawLeftedGdText($image, $fontPathCustom, 15, 700, $tableY, strtoupper($table), $textColor);
+            // drawLeftedGdText($image, $fontPathCustom, 15, 700, $tableY, strtoupper($table), $textColor);
+            drawCenteredGdText($image, $fontPathCustom, 15, $tableY, strtoupper($table), $textColor);
         }
 
         header('Content-Type: image/png');
@@ -258,26 +267,63 @@ function renderReservationTicket($id)
  */
 function resolveTicketFont()
 {
-    $candidates = [
-        'C:\\Windows\\Fonts\\arial.ttf',        // Fixed Windows path
-        'C:\\Windows\\Fonts\\arialbd.ttf',      // Fixed Windows path
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-        '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
-        '/System/Library/Fonts/Helvetica.ttc'   // macOS path
-    ];
+    // $candidates = [
+    //     'C:\\Windows\\Fonts\\arial.ttf',        // Fixed Windows path
+    //     'C:\\Windows\\Fonts\\arialbd.ttf',      // Fixed Windows path
+    //     '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    //     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    //     '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+    //     '/System/Library/Fonts/Helvetica.ttc'   // macOS path
+    // ];
 
-    foreach ($candidates as $font) {
-        if (file_exists($font)) {
-            return $font;
-        }
-    }
+    // foreach ($candidates as $font) {
+    //     if (file_exists($font)) {
+    //         return $font;
+    //     }
+    // }
 
     return null;
 }
 
 /**
  * Draw centered TTF text with a subtle shadow
+ */
+function drawCenteredTtfText($image, $fontSize, $y, $fontPath, $text, $color, $shadowColor)
+{
+    $width = imagesx($image);
+    $angle = 0;
+    $bbox = imagettfbbox($fontSize, $angle, $fontPath, $text);
+    $textWidth = $bbox[2] - $bbox[0];
+    $x = (int) (($width - $textWidth) / 2);
+
+    // Shadow for readability on busy backgrounds
+    imagettftext($image, $fontSize, $angle, $x + 2, $y + 2, $shadowColor, $fontPath, $text);
+    imagettftext($image, $fontSize, $angle, $x, $y, $color, $fontPath, $text);
+}
+
+/**
+ * Draw centered GD text fallback (no TTF)
+ */
+
+function drawCenteredGdText($image, $fontPath, $fontSize, $y, $text, $color)
+{
+    // Get text bounding box
+    $bbox = imagettfbbox($fontSize, 0, $fontPath, $text);
+    $textWidth = $bbox[2] - $bbox[0];
+
+    // Center horizontally (or adjust as needed)
+    $imageWidth = imagesx($image);
+    $angle = 0;
+    $bbox = imagettfbbox($fontSize, $angle, $fontPath, $text);
+    $textWidth = $bbox[2] - $bbox[0];
+    $x = (int) (($imageWidth - $textWidth) / 2);
+
+    // Draw text
+    imagettftext($image, $fontSize, 0, $x, $y, $color, $fontPath, $text);
+}
+
+/**
+ * Draw lefted TTF text fallback
  */
 function drawLeftedTtfText($image, $fontSize, $xVal, $y, $fontPath, $text, $color, $shadowColor)
 {
@@ -290,7 +336,7 @@ function drawLeftedTtfText($image, $fontSize, $xVal, $y, $fontPath, $text, $colo
 }
 
 /**
- * Draw centered GD text fallback (no TTF)
+ * Draw lefted GD text fallback (no TTF)
  */
 
 function drawLeftedGdText($image, $fontPath, $fontSize, $xVal, $y, $text, $color)
