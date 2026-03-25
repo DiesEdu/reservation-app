@@ -125,7 +125,11 @@
                   <span v-if="tableError" class="error-text">{{ tableError }}</span>
                   <div class="per-page">
                     <label for="per-page">Per page:</label>
-                    <select id="per-page" v-model.number="itemsPerPage" class="filter-select compact">
+                    <select
+                      id="per-page"
+                      v-model.number="itemsPerPage"
+                      class="filter-select compact"
+                    >
                       <option :value="5">5</option>
                       <option :value="10">10</option>
                       <option :value="20">20</option>
@@ -266,7 +270,7 @@
                         />
                       </svg>
                       <div class="donut-center">
-                        <span class="donut-total">{{ filteredReservations.length }}</span>
+                        <span class="donut-total">{{ summaryStatsData.totalReservations }}</span>
                         <span class="donut-label">Total</span>
                       </div>
                     </div>
@@ -665,6 +669,8 @@ onMounted(async () => {
     store.fetchReservations()
     store.fetchTableNames()
     fetchTableData()
+    fetchSummary()
+    fetchAnalytics()
   }
 })
 
@@ -696,123 +702,150 @@ watch([dateFilter, timeFilter], () => {
 })
 
 // Summary Stats
-const summaryStats = computed(() => {
-  const data = filteredReservations.value
-  const confirmed = data.filter((r) => r.status === 'confirmed').length
-  const pending = data.filter((r) => r.status === 'pending').length
-  const totalGuests = data.reduce((sum, r) => sum + r.guests, 0)
+const summaryStatsData = ref({
+  totalReservations: 0,
+  confirmed: 0,
+  pending: 0,
+  totalGuests: 0,
+})
 
+const analyticsData = ref({
+  statusCounts: [],
+  dailyCounts: [],
+  guestDistribution: [],
+  peakHours: [],
+})
+
+const fetchSummary = async () => {
+  try {
+    const res = await fetch(`${API_URL}/reservations/summary`)
+    const data = await res.json()
+    if (data.success && data.data) {
+      summaryStatsData.value = {
+        totalReservations: data.data.totalReservations ?? 0,
+        confirmed: data.data.confirmed ?? 0,
+        pending: data.data.pending ?? 0,
+        totalGuests: data.data.totalGuests ?? 0,
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load summary', err)
+  }
+}
+
+const fetchAnalytics = async () => {
+  try {
+    const res = await fetch(`${API_URL}/reservations/analytics`)
+    const data = await res.json()
+    console.log('Analytics API response:', data)
+    if (data.success && data.data) {
+      analyticsData.value = {
+        statusCounts: data.data.statusCounts || [],
+        dailyCounts: data.data.dailyCounts || [],
+        guestDistribution: data.data.guestDistribution || [],
+        peakHours: data.data.peakHours || [],
+      }
+      console.log('Analytics dailyCounts:', analyticsData.value.dailyCounts)
+    }
+  } catch (err) {
+    console.error('Failed to load analytics', err)
+  }
+}
+
+const summaryStats = computed(() => {
   return [
     {
       label: 'Total Reservations',
-      value: data.length,
+      value: summaryStatsData.value.totalReservations,
       icon: 'bi bi-calendar-event',
       color: 'gold',
-      trend: '+12%',
-      trendClass: 'positive',
-      trendIcon: 'bi bi-arrow-up',
+      trend: null,
     },
     {
       label: 'Confirmed',
-      value: confirmed,
+      value: summaryStatsData.value.confirmed,
       icon: 'bi bi-check-circle',
       color: 'success',
-      trend: '+8%',
-      trendClass: 'positive',
-      trendIcon: 'bi bi-arrow-up',
+      trend: null,
     },
     {
       label: 'Pending',
-      value: pending,
+      value: summaryStatsData.value.pending,
       icon: 'bi bi-hourglass-split',
       color: 'warning',
       trend: null,
     },
     {
       label: 'Total Guests',
-      value: totalGuests,
+      value: summaryStatsData.value.totalGuests,
       icon: 'bi bi-people',
       color: 'info',
-      trend: '+15%',
-      trendClass: 'positive',
-      trendIcon: 'bi bi-arrow-up',
+      trend: null,
     },
   ]
 })
 
-// Status Segments for Donut Chart
+// Status Segments for Donut Chart (backend)
 const statusSegments = computed(() => {
-  const data = filteredReservations.value
-  const total = data.length || 1
-  const confirmed = data.filter((r) => r.status === 'confirmed').length
-  const pending = data.filter((r) => r.status === 'pending').length
-  const cancelled = data.filter((r) => r.status === 'cancelled').length
-
+  const total =
+    analyticsData.value.statusCounts.reduce((sum, s) => sum + Number(s.count || 0), 0) || 1
   const circumference = 2 * Math.PI * 40
-  const confirmedPct = confirmed / total
-  const pendingPct = pending / total
-  const cancelledPct = cancelled / total
 
-  const segments = [
-    {
-      label: 'Confirmed',
-      count: confirmed,
-      percent: Math.round(confirmedPct * 100),
-      color: '#28a745',
-      dashArray: `${confirmedPct * circumference} ${circumference}`,
-      dashOffset: 0,
-    },
-    {
-      label: 'Pending',
-      count: pending,
-      percent: Math.round(pendingPct * 100),
-      color: '#ffc107',
-      dashArray: `${pendingPct * circumference} ${circumference}`,
-      dashOffset: -confirmedPct * circumference,
-    },
-    {
-      label: 'Cancelled',
-      count: cancelled,
-      percent: Math.round(cancelledPct * 100),
-      color: '#dc3545',
-      dashArray: `${cancelledPct * circumference} ${circumference}`,
-      dashOffset: -(confirmedPct + pendingPct) * circumference,
-    },
-  ]
+  const colorMap = {
+    confirmed: '#28a745',
+    pending: '#ffc107',
+    cancelled: '#dc3545',
+  }
 
-  return segments
+  let offset = 0
+  return analyticsData.value.statusCounts.map((s) => {
+    const pct = Number(s.count || 0) / total || 0
+    const segment = {
+      label: s.status || 'unknown',
+      count: Number(s.count || 0),
+      percent: Math.round(pct * 100),
+      color: colorMap[s.status] || '#6c757d',
+      dashArray: `${pct * circumference} ${circumference}`,
+      dashOffset: -offset,
+    }
+    offset += pct * circumference
+    return segment
+  })
 })
+
+// Helper function to format date as YYYY-MM-DD in local timezone
+const formatDateISO = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 // Reservations by Date (last 7 days)
 const reservationsByDate = computed(() => {
+  const now = new Date()
+
+  // Build lookup with multiple format possibilities
+  const lookup = {}
+  analyticsData.value.dailyCounts.forEach((d) => {
+    if (d.day) {
+      // Try different formats: raw, trimmed, etc.
+      lookup[String(d.day).trim()] = Number(d.count || 0)
+      // Also try with leading/trailing spaces removed
+      lookup[String(d.day)] = Number(d.count || 0)
+    }
+  })
+
   const days = []
-  const data = filteredReservations.value
-
   for (let i = 6; i >= 0; i--) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    const dateStr = date.toISOString().split('T')[0]
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' })
-
-    const count = data.filter((r) => r.date === dateStr).length
+    const d = new Date(now)
+    d.setDate(now.getDate() - i)
+    const iso = formatDateISO(d)
     days.push({
-      date: dateStr,
-      label: dayName,
-      count,
-      percent:
-        count > 0
-          ? Math.min(
-              100,
-              (count /
-                Math.max(
-                  ...data.map((r) => {
-                    const d = new Date(r.date)
-                    return data.filter((x) => x.date === d.toISOString().split('T')[0]).length
-                  }),
-                )) *
-                100,
-            )
-          : 0,
+      date: iso,
+      label: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      count: lookup[iso] || 0,
+      percent: 0,
     })
   }
 
@@ -824,20 +857,11 @@ const reservationsByDate = computed(() => {
   return days
 })
 
-// Guests Distribution
+// Guests Distribution (backend)
 const guestsDistribution = computed(() => {
-  const data = filteredReservations.value
-  const ranges = [
-    { range: '1-2 guests', min: 1, max: 2 },
-    { range: '3-4 guests', min: 3, max: 4 },
-    { range: '5-6 guests', min: 5, max: 6 },
-    { range: '7-8 guests', min: 7, max: 8 },
-    { range: '9+ guests', min: 9, max: 100 },
-  ]
-
-  const distribution = ranges.map((r) => ({
-    range: r.range,
-    count: data.filter((res) => res.guests >= r.min && res.guests <= r.max).length,
+  const distribution = analyticsData.value.guestDistribution.map((g) => ({
+    range: g.range,
+    count: Number(g.count || 0),
     percent: 0,
   }))
 
@@ -849,23 +873,18 @@ const guestsDistribution = computed(() => {
   return distribution
 })
 
-// Peak Hours
+// Peak Hours (backend)
 const peakHours = computed(() => {
-  const data = filteredReservations.value
-  const hours = []
-
-  for (let i = 11; i <= 22; i++) {
-    const hourStr = `${i > 12 ? i - 12 : i}:00 ${i >= 12 ? 'PM' : 'AM'}`
-    const count = data.filter((r) => {
-      const reservationHour = parseInt(r.time.split(':')[0])
-      return reservationHour === i
-    }).length
-    hours.push({
-      time: hourStr,
-      count,
+  const hours = analyticsData.value.peakHours.map((h) => {
+    const hourInt = Number(h.hour || 0)
+    const displayHour = hourInt % 12 || 12
+    const label = `${displayHour}:00 ${hourInt >= 12 ? 'PM' : 'AM'}`
+    return {
+      time: label,
+      count: Number(h.count || 0),
       percent: 0,
-    })
-  }
+    }
+  })
 
   const maxCount = Math.max(...hours.map((h) => h.count), 1)
   hours.forEach((h) => {

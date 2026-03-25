@@ -78,6 +78,9 @@ if ($path === '/reservations' || $path === '/reservations/') {
 } elseif ($path === '/reservations/summary' && $method === 'GET') {
     // Get reservations summary counts
     getReservationSummary();
+} elseif ($path === '/reservations/analytics' && $method === 'GET') {
+    // Get reservations analytics data for charts
+    getReservationAnalytics();
 } else {
     http_response_code(404);
     echo json_encode(['success' => false, 'error' => 'Endpoint not found']);
@@ -567,6 +570,87 @@ function getReservationSummary()
         echo json_encode([
             'success' => false,
             'error' => 'Failed to fetch summary: ' . $e->getMessage(),
+        ]);
+    }
+}
+
+/**
+ * GET analytics data for dashboard charts
+ */
+function getReservationAnalytics()
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    try {
+        // Status counts
+        $statusStmt = $pdo->query("
+            SELECT status, COUNT(*) AS count
+            FROM reservations
+            GROUP BY status
+        ");
+        $statusCounts = $statusStmt->fetchAll() ?: [];
+
+        // Daily counts (last 7 days, including today)
+        $dailyStmt = $pdo->query("
+            SELECT date AS day, COUNT(*) AS count
+            FROM reservations
+            WHERE date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+            GROUP BY date
+            ORDER BY date ASC
+        ");
+        $dailyCounts = $dailyStmt->fetchAll() ?: [];
+
+        // Guest distribution buckets
+        $guestStmt = $pdo->query("
+            SELECT
+                SUM(guests BETWEEN 1 AND 2) AS g1_2,
+                SUM(guests BETWEEN 3 AND 4) AS g3_4,
+                SUM(guests BETWEEN 5 AND 6) AS g5_6,
+                SUM(guests BETWEEN 7 AND 8) AS g7_8,
+                SUM(guests >= 9) AS g9_plus
+            FROM reservations
+        ");
+        $guestRow = $guestStmt->fetch() ?: [];
+
+        $guestDistribution = [
+            ['range' => '1-2 guests', 'count' => (int) ($guestRow['g1_2'] ?? 0)],
+            ['range' => '3-4 guests', 'count' => (int) ($guestRow['g3_4'] ?? 0)],
+            ['range' => '5-6 guests', 'count' => (int) ($guestRow['g5_6'] ?? 0)],
+            ['range' => '7-8 guests', 'count' => (int) ($guestRow['g7_8'] ?? 0)],
+            ['range' => '9+ guests', 'count' => (int) ($guestRow['g9_plus'] ?? 0)],
+        ];
+
+        // Peak hours (0-23)
+        $peakStmt = $pdo->query("
+            SELECT HOUR(time) AS hour, COUNT(*) AS count
+            FROM reservations
+            GROUP BY HOUR(time)
+            ORDER BY hour ASC
+        ");
+        $peakRows = $peakStmt->fetchAll() ?: [];
+
+        $peakHours = [];
+        for ($h = 0; $h <= 23; $h++) {
+            $row = array_values(array_filter($peakRows, fn($r) => (int)$r['hour'] === $h));
+            $count = $row ? (int) $row[0]['count'] : 0;
+            $peakHours[] = ['hour' => $h, 'count' => $count];
+        }
+
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'statusCounts' => $statusCounts,
+                'dailyCounts' => $dailyCounts,
+                'guestDistribution' => $guestDistribution,
+                'peakHours' => $peakHours,
+            ],
+        ]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to fetch analytics: ' . $e->getMessage(),
         ]);
     }
 }
