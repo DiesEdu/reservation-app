@@ -27,8 +27,9 @@
         <!-- Header -->
         <div class="confirmation-header">
           <div class="logo-section">
-            <i class="bi bi-gem"></i>
-            <h1>RESONANZ RESERVE</h1>
+            <img src="/new-iforte.png" alt="Resonanz Logo" class="logo-icon" />
+            <!-- <i class="bi bi-gem"></i>
+            <h1>RESONANZ RESERVE</h1> -->
           </div>
           <p class="subtitle">Reservation Confirmation</p>
         </div>
@@ -599,6 +600,10 @@ onUnmounted(() => {
 
 /* Header */
 .confirmation-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   text-align: center;
   margin-bottom: 2.5rem;
 }
@@ -606,9 +611,17 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 90px;
+  width: 180px;
   gap: 0.9rem;
   margin-bottom: 0.75rem;
 }
+
+.logo-section img {
+  width: 100%;
+  object-fit: contain;
+}
+
 .logo-section i {
   font-size: 2.4rem;
   color: var(--accent);

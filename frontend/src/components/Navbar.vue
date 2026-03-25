@@ -2,12 +2,15 @@
   <nav class="navbar navbar-expand-lg fixed-top">
     <div class="container">
       <router-link class="navbar-brand d-flex align-items-center" to="/">
-        <div class="logo-icon me-3">
+        <!-- <div class="logo-icon me-3">
           <i class="bi bi-gem"></i>
         </div>
         <div class="brand-text">
           <span class="brand-main">RESONANZ</span>
           <span class="brand-sub">RESERVE</span>
+        </div> -->
+        <div class="logo-icon me-3">
+          <img src="/new-iforte.png" alt="Logo" class="logo-image" />
         </div>
       </router-link>
       <button
@@ -119,7 +122,7 @@ const handleLogout = async () => {
 }
 
 .logo-icon {
-  width: 45px;
+  width: 90px;
   height: 45px;
   background: var(--accent);
   border-radius: 10px;
@@ -130,6 +133,10 @@ const handleLogout = async () => {
   color: var(--primary-dark);
   font-size: 1.5rem;
   box-shadow: 0 8px 18px rgba(246, 196, 0, 0.35);
+}
+
+.logo-icon img {
+  width: 100%;
 }
 
 .brand-text {
