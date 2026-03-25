@@ -7,7 +7,7 @@
           <div class="hero-content">
             <h1 class="hero-title">
               <span class="title-line">Exquisite</span>
-              <span class="title-line gold">Dining</span>
+              <span class="title-line">Dining</span>
               <span class="title-line">Management</span>
             </h1>
             <p class="hero-subtitle">Curating unforgettable culinary experiences</p>
