@@ -6,11 +6,15 @@
         <section class="hero-section">
           <div class="hero-content">
             <h1 class="hero-title">
-              <span class="title-line">Exquisite</span>
-              <span class="title-line">Dining</span>
-              <span class="title-line">Management</span>
+              <span class="title-line">Halal Bihalal</span>
+              <span class="title-line"
+                ><img src="/connected-in-harmony.png" alt="Resonanz Logo" class="logo-icon"
+              /></span>
             </h1>
-            <p class="hero-subtitle">Curating unforgettable culinary experiences</p>
+            <p class="hero-subtitle">
+              bersama
+              <span><img src="/new-iforte.png" alt="Resonanz Logo" class="logo-icon" /></span>
+            </p>
             <div class="hero-line"></div>
           </div>
         </section>
@@ -147,6 +151,11 @@ const stats = reactive([
   animation: slideUp 0.8s ease-out forwards;
 }
 
+.title-line img {
+  width: 45%;
+  height: auto;
+}
+
 .title-line:nth-child(1) {
   animation-delay: 0.2s;
 }
@@ -198,6 +207,14 @@ const stats = reactive([
   margin-bottom: 2rem;
   opacity: 0;
   animation: fadeIn 1s ease-out 0.8s forwards;
+}
+
+.hero-subtitle span {
+  height: 30px;
+}
+
+.hero-subtitle span img {
+  width: 10%;
 }
 
 @keyframes fadeIn {

@@ -1,5 +1,6 @@
 <template>
   <div class="customer-confirmation">
+    <Navbar />
     <!-- Access Denied Message -->
     <div v-if="accessDenied" class="access-denied">
       <div class="access-denied-card">
@@ -154,6 +155,7 @@
 <script setup>
 import { ref, computed, onUnmounted, onMounted, nextTick } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
+import Navbar from '../components/Navbar.vue'
 import { useAuthStore } from '@/stores/auth'
 
 // API Base URL
@@ -444,7 +446,7 @@ onUnmounted(() => {
   font-family: 'Poppins', 'Inter', sans-serif;
   position: relative;
   overflow-x: hidden;
-  padding: 2rem 0 3rem;
+  padding: 7rem 0 3rem; /* offset fixed Navbar */
 }
 
 /* Access Denied */
@@ -505,7 +507,7 @@ onUnmounted(() => {
 
 .countdown-timer {
   position: fixed;
-  top: 0;
+  top: 88px; /* align below fixed Navbar */
   left: 0;
   right: 0;
   background: linear-gradient(135deg, rgba(212, 175, 55, 0.7) 0%, rgba(170, 138, 46, 0.7) 100%);
@@ -695,7 +697,6 @@ onUnmounted(() => {
 
 .scanner-container {
   margin-bottom: 1.6rem;
-  min-height: 300px;
 }
 .scanner-placeholder {
   text-align: center;
