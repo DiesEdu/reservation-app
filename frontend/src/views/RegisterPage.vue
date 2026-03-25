@@ -211,12 +211,7 @@ const handleRegister = async () => {
     successMessage.value = 'Account created successfully! Redirecting...'
     // Redirect based on role
     setTimeout(() => {
-      const user = authStore.user
-      if (user.role === 'admin' || user.role === 'staff') {
-        router.push('/analytics')
-      } else {
-        router.push('/')
-      }
+      router.push('/')
     }, 1500)
   } else {
     error.value = result.error

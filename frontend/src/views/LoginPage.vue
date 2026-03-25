@@ -169,12 +169,7 @@ const handleLogin = async () => {
 
   if (result.success) {
     // Redirect based on role
-    const user = authStore.user
-    if (user.role === 'admin' || user.role === 'staff') {
-      router.push('/analytics')
-    } else {
-      router.push('/')
-    }
+    router.push('/')
   } else {
     error.value = result.error
   }
