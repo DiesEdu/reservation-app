@@ -38,7 +38,7 @@ if ($path === '/auth/register' && $method === 'POST') {
     refreshToken();
 } elseif ($path === '/auth/me' && $method === 'GET') {
     getCurrentUser();
-} elseif ($path === '/auth/verify' && $method === 'POST') {
+} elseif (($path === '/auth/verify' || $path === '/auth/verify-email') && ($method === 'POST' || $method === 'GET')) {
     verifyEmail();
 } elseif ($path === '/auth/forgot-password' && $method === 'POST') {
     forgotPassword();
@@ -405,13 +405,21 @@ function getCurrentUser()
 }
 
 /**
- * POST - Verify email
+ * POST/GET - Verify email
  */
 function verifyEmail()
 {
-    $input = json_decode(file_get_contents('php://input'), true);
+    $token = null;
 
-    if (empty($input['token'])) {
+    // Support both POST (body) and GET (query param) requests
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $token = $_GET['token'] ?? null;
+    } else {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $token = $input['token'] ?? null;
+    }
+
+    if (empty($token)) {
         http_response_code(400);
         echo json_encode([
             'success' => false,
@@ -429,7 +437,7 @@ function verifyEmail()
             SET email_verified = TRUE, verification_token = NULL
             WHERE verification_token = ?
         ");
-        $stmt->execute([$input['token']]);
+        $stmt->execute([$token]);
 
         if ($stmt->rowCount() === 0) {
             http_response_code(400);
@@ -438,6 +446,12 @@ function verifyEmail()
                 'error' => 'Invalid or expired verification token'
             ]);
             return;
+        }
+
+        // For GET requests, redirect to verification success page after successful verification
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            header('Location: https://reserve.resonanz.id/verify-success');
+            exit();
         }
 
         echo json_encode([
