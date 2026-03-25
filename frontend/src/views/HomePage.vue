@@ -111,6 +111,7 @@ const stats = reactive([
   z-index: 1;
   padding-top: 100px;
   padding-bottom: 4rem;
+  color: var(--primary-dark);
 }
 
 /* Hero Section */
@@ -137,6 +138,7 @@ const stats = reactive([
   font-weight: 700;
   line-height: 1.1;
   margin-bottom: 1rem;
+  color: var(--primary-dark);
 }
 
 .title-line {
@@ -164,6 +166,7 @@ const stats = reactive([
   animation:
     slideUp 0.8s ease-out 0.4s forwards,
     shimmer 3s ease-in-out infinite;
+  background: linear-gradient(135deg, var(--accent) 0%, #ff9f43 50%, var(--primary) 100%);
 }
 
 @keyframes slideUp {
@@ -189,8 +192,8 @@ const stats = reactive([
 
 .hero-subtitle {
   font-size: 1.2rem;
-  color: rgba(244, 229, 194, 0.6);
-  letter-spacing: 3px;
+  color: #5b6b86;
+  letter-spacing: 2px;
   text-transform: uppercase;
   margin-bottom: 2rem;
   opacity: 0;
@@ -206,7 +209,7 @@ const stats = reactive([
 .hero-line {
   width: 100px;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #d4af37, transparent);
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
   margin: 0 auto;
   opacity: 0;
   animation: expandLine 1s ease-out 1s forwards;
@@ -236,11 +239,10 @@ const stats = reactive([
 
 .stat-card {
   position: relative;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 20px;
-  padding: 1.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.25rem;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -248,6 +250,7 @@ const stats = reactive([
   overflow: hidden;
   animation: cardFloat 0.8s ease-out backwards;
   transition: all 0.4s ease;
+  box-shadow: var(--shadow);
 }
 
 @keyframes cardFloat {
@@ -263,8 +266,8 @@ const stats = reactive([
 
 .stat-card:hover {
   transform: translateY(-5px);
-  border-color: rgba(212, 175, 55, 0.4);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(31, 79, 163, 0.18);
+  box-shadow: 0 24px 48px rgba(31, 79, 163, 0.15);
 }
 
 .stat-glow {
@@ -272,7 +275,7 @@ const stats = reactive([
   inset: 0;
   background: radial-gradient(
     circle at var(--x, 50%) var(--y, 50%),
-    rgba(212, 175, 55, 0.15) 0%,
+    rgba(246, 196, 0, 0.18) 0%,
     transparent 60%
   );
   opacity: 0;
@@ -292,30 +295,31 @@ const stats = reactive([
   justify-content: center;
   font-size: 1.8rem;
   transition: all 0.3s ease;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
 }
 
 .stat-icon.gold {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.1) 100%);
-  color: #d4af37;
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: linear-gradient(135deg, #ffd84d 0%, #f6c400 100%);
+  color: #1b1f3b;
+  border: 1px solid #ffe37a;
 }
 
 .stat-icon.success {
-  background: linear-gradient(135deg, rgba(40, 167, 69, 0.2) 0%, rgba(40, 167, 69, 0.1) 100%);
-  color: #28a745;
-  border: 1px solid rgba(40, 167, 69, 0.3);
+  background: linear-gradient(135deg, #7ed957 0%, #4fc26a 100%);
+  color: #0c4c2c;
+  border: 1px solid #c3f2c5;
 }
 
 .stat-icon.warning {
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 193, 7, 0.1) 100%);
-  color: #ffc107;
-  border: 1px solid rgba(255, 193, 7, 0.3);
+  background: linear-gradient(135deg, #ff9f43 0%, #ff6b6b 100%);
+  color: #611316;
+  border: 1px solid #ffd0b0;
 }
 
 .stat-icon.info {
-  background: linear-gradient(135deg, rgba(23, 162, 184, 0.2) 0%, rgba(23, 162, 184, 0.1) 100%);
-  color: #17a2b8;
-  border: 1px solid rgba(23, 162, 184, 0.3);
+  background: linear-gradient(135deg, #8cc4ff 0%, #1f4fa3 100%);
+  color: #0f172a;
+  border: 1px solid #cfe3ff;
 }
 
 .stat-card:hover .stat-icon {
@@ -325,7 +329,7 @@ const stats = reactive([
 .stat-number {
   font-size: 2rem;
   font-weight: 700;
-  color: #f4e5c2;
+  color: var(--primary-dark);
   line-height: 1;
   transition: all 0.3s ease;
 }
@@ -341,13 +345,13 @@ const stats = reactive([
   }
   50% {
     transform: scale(1.2);
-    color: #d4af37;
+    color: var(--accent);
   }
 }
 
 .stat-label {
   font-size: 0.9rem;
-  color: rgba(244, 229, 194, 0.6);
+  color: #5b6b86;
   margin-top: 0.3rem;
 }
 
@@ -360,7 +364,7 @@ const stats = reactive([
 }
 
 .stat-sparkle i {
-  color: #d4af37;
+  color: var(--accent);
   font-size: 0.6rem;
   animation: sparkle 1s ease-in-out infinite;
 }

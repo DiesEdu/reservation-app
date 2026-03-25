@@ -201,13 +201,11 @@ const resetForm = () => {
 
 <style scoped>
 .luxury-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow);
   animation: cardEntry 0.8s ease-out;
 }
 
@@ -223,27 +221,27 @@ const resetForm = () => {
 }
 
 .card-header-luxury {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
-  padding: 2rem;
+  background: linear-gradient(135deg, rgba(246, 196, 0, 0.18) 0%, rgba(31, 79, 163, 0.08) 100%);
+  padding: 1.6rem;
   display: flex;
   align-items: center;
   gap: 1.5rem;
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  border-bottom: 1px solid var(--border);
 }
 
 .header-icon {
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, #d4af37 0%, #f4e5c2 100%);
-  border-radius: 16px;
+  background: linear-gradient(135deg, var(--primary) 0%, #8cc4ff 100%);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.8rem;
-  color: #0a0a0a;
-  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+  color: #ffffff;
+  box-shadow: 0 14px 30px rgba(31, 79, 163, 0.28);
   animation: iconPulse 2s infinite;
 }
 
@@ -258,16 +256,16 @@ const resetForm = () => {
 }
 
 .header-content h5 {
-  color: #f4e5c2;
-  font-size: 1.4rem;
+  color: var(--primary-dark);
+  font-size: 1.35rem;
   font-weight: 600;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .header-content small {
-  color: rgba(244, 229, 194, 0.6);
-  font-size: 0.85rem;
-  letter-spacing: 0.5px;
+  color: #5b6b86;
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
 }
 
 .header-glow {
@@ -276,7 +274,7 @@ const resetForm = () => {
   right: -10%;
   width: 200px;
   height: 200px;
-  background: radial-gradient(circle, rgba(212, 175, 55, 0.3) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(246, 196, 0, 0.25) 0%, transparent 70%);
   animation: glowRotate 10s linear infinite;
 }
 
@@ -290,7 +288,7 @@ const resetForm = () => {
 }
 
 .card-body-luxury {
-  padding: 2rem;
+  padding: 1.6rem;
 }
 
 .form-floating-luxury {
@@ -301,10 +299,10 @@ const resetForm = () => {
 .form-control-luxury {
   width: 100%;
   padding: 1.2rem 1rem 0.6rem 3rem;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  background: #f6f8ff;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  color: #f4e5c2;
+  color: var(--primary-dark);
   font-size: 0.95rem;
   transition: all 0.3s ease;
   appearance: none;
@@ -312,9 +310,9 @@ const resetForm = () => {
 
 .form-control-luxury:focus {
   outline: none;
-  border-color: #d4af37;
-  background: rgba(0, 0, 0, 0.3);
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+  border-color: var(--primary);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(31, 79, 163, 0.12);
 }
 
 .form-floating-luxury label {
@@ -322,7 +320,7 @@ const resetForm = () => {
   left: 3rem;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(244, 229, 194, 0.5);
+  color: #6d7a93;
   font-size: 0.9rem;
   transition: all 0.3s ease;
   pointer-events: none;
@@ -336,7 +334,7 @@ const resetForm = () => {
 .form-control-luxury:not(:placeholder-shown) + label {
   top: 0.6rem;
   font-size: 0.7rem;
-  color: #d4af37;
+  color: var(--primary);
   font-weight: 600;
 }
 
@@ -345,7 +343,7 @@ const resetForm = () => {
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(212, 175, 55, 0.6);
+  color: var(--primary);
   font-size: 1.1rem;
   transition: all 0.3s ease;
 }
@@ -356,7 +354,7 @@ const resetForm = () => {
 }
 
 .form-control-luxury:focus ~ .input-icon {
-  color: #d4af37;
+  color: var(--accent);
   transform: translateY(-50%) scale(1.1);
 }
 
@@ -370,7 +368,7 @@ const resetForm = () => {
   left: 50%;
   width: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #d4af37, transparent);
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
   transition: all 0.4s ease;
   transform: translateX(-50%);
 }
@@ -382,11 +380,11 @@ const resetForm = () => {
 .btn-submit-luxury {
   width: 100%;
   padding: 1.2rem;
-  background: linear-gradient(135deg, #d4af37 0%, #f4e5c2 50%, #d4af37 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #ff9f43 45%, var(--primary) 100%);
   background-size: 200% 200%;
   border: none;
   border-radius: 12px;
-  color: #0a0a0a;
+  color: #0f172a;
   font-weight: 700;
   font-size: 1.1rem;
   letter-spacing: 1px;
@@ -394,12 +392,12 @@ const resetForm = () => {
   overflow: hidden;
   cursor: pointer;
   transition: all 0.4s ease;
-  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 18px 32px rgba(31, 79, 163, 0.18);
 }
 
 .btn-submit-luxury:hover {
   transform: translateY(-3px);
-  box-shadow: 0 15px 40px rgba(212, 175, 55, 0.5);
+  box-shadow: 0 22px 44px rgba(31, 79, 163, 0.24);
   background-position: 100% 100%;
 }
 
@@ -426,7 +424,7 @@ const resetForm = () => {
   position: absolute;
   width: 6px;
   height: 6px;
-  background: #d4af37;
+  background: var(--accent);
   border-radius: 50%;
   animation: particle 1s ease-out infinite;
 }
@@ -473,7 +471,7 @@ select.form-control-luxury {
 }
 
 select.form-control-luxury option {
-  background: #1a1a1a;
-  color: #f4e5c2;
+  background: #ffffff;
+  color: var(--primary-dark);
 }
 </style>

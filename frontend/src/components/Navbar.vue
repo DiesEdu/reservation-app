@@ -107,43 +107,34 @@ const handleLogout = async () => {
 
 <style scoped>
 .navbar {
-  background: rgba(10, 10, 10, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
   padding: 1rem 0;
   transition: all 0.4s ease;
   z-index: 1000;
+  box-shadow: 0 12px 30px rgba(31, 79, 163, 0.08);
 }
 
 .navbar.scrolled {
-  background: rgba(10, 10, 10, 0.95);
+  background: rgba(255, 255, 255, 0.98);
   padding: 0.5rem 0;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 18px 40px rgba(31, 79, 163, 0.12);
 }
 
 .logo-icon {
   width: 45px;
   height: 45px;
-  background: linear-gradient(135deg, #d4af37 0%, #f4e5c2 50%, #d4af37 100%);
-  border-radius: 12px;
+  background: var(--accent);
+  border-radius: 10px;
+  border: 2px solid var(--primary-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0a0a0a;
+  color: var(--primary-dark);
   font-size: 1.5rem;
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
-  animation: shimmer 3s infinite;
-}
-
-@keyframes shimmer {
-  0%,
-  100% {
-    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
-  }
-  50% {
-    box-shadow: 0 4px 30px rgba(212, 175, 55, 0.8);
-  }
+  box-shadow: 0 8px 18px rgba(246, 196, 0, 0.35);
 }
 
 .brand-text {
@@ -156,21 +147,18 @@ const handleLogout = async () => {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: 3px;
-  background: linear-gradient(135deg, #d4af37 0%, #f4e5c2 50%, #d4af37 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--primary-dark);
 }
 
 .brand-sub {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   letter-spacing: 4px;
-  color: rgba(255, 255, 255, 0.6);
+  color: #5b6b86;
   margin-top: 2px;
 }
 
 .nav-link {
-  color: rgba(255, 255, 255, 0.8) !important;
+  color: rgba(21, 52, 109, 0.7) !important;
   padding: 0.5rem 1.2rem !important;
   position: relative;
   overflow: hidden;
@@ -183,6 +171,7 @@ const handleLogout = async () => {
   letter-spacing: 1px;
   font-size: 0.9rem;
   transition: color 0.3s ease;
+  text-transform: uppercase;
 }
 
 .nav-line {
@@ -191,7 +180,7 @@ const handleLogout = async () => {
   left: 50%;
   width: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #d4af37, transparent);
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
   transition: all 0.4s ease;
   transform: translateX(-50%);
 }
@@ -203,24 +192,24 @@ const handleLogout = async () => {
 
 .nav-link:hover .nav-text,
 .nav-link.active .nav-text {
-  color: #d4af37;
+  color: var(--primary-dark);
 }
 
 .btn-gold {
-  background: linear-gradient(135deg, #d4af37 0%, #f4e5c2 50%, #d4af37 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #ffd84d 100%);
   border: none;
-  color: #0a0a0a;
+  color: #12213f;
   font-weight: 600;
   padding: 0.6rem 1.5rem;
   border-radius: 25px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 8px 18px rgba(246, 196, 0, 0.35);
 }
 
 .btn-gold:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(212, 175, 55, 0.5);
-  color: #0a0a0a;
+  box-shadow: 0 12px 30px rgba(31, 79, 163, 0.18);
+  color: #0f172a;
 }
 
 /* Dropdown Styles */
@@ -229,31 +218,32 @@ const handleLogout = async () => {
 }
 
 .dropdown-menu {
-  background: rgba(20, 20, 20, 0.95);
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: #ffffff;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.5rem;
   margin-top: 0.5rem;
+  box-shadow: var(--shadow);
 }
 
 .dropdown-item {
-  color: #f4e5c2;
+  color: var(--primary-dark);
   border-radius: 6px;
   padding: 0.5rem 1rem;
   transition: all 0.2s ease;
 }
 
 .dropdown-item:hover {
-  background: rgba(212, 175, 55, 0.1);
-  color: #d4af37;
+  background: rgba(31, 79, 163, 0.08);
+  color: var(--primary);
 }
 
 .dropdown-divider {
-  border-color: rgba(212, 175, 55, 0.2);
+  border-color: var(--border);
 }
 
 .user-email {
-  color: rgba(244, 229, 194, 0.6);
+  color: #5b6b86;
   font-size: 0.85rem;
 }
 </style>

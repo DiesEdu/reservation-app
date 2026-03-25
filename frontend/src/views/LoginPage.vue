@@ -216,6 +216,10 @@ if (isAuthenticated.value) {
   padding: 2rem;
   position: relative;
   z-index: 1;
+  background: radial-gradient(circle at 10% 20%, rgba(31, 79, 163, 0.08), transparent 35%),
+    radial-gradient(circle at 90% 25%, rgba(246, 196, 0, 0.12), transparent 38%),
+    radial-gradient(circle at 15% 85%, rgba(255, 107, 107, 0.12), transparent 35%),
+    var(--bg);
 }
 
 .auth-container {
@@ -224,11 +228,11 @@ if (isAuthenticated.value) {
 }
 
 .auth-card {
-  background: rgba(20, 20, 20, 0.9);
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 16px;
-  padding: 2.5rem;
-  backdrop-filter: blur(10px);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 2.4rem;
+  box-shadow: var(--shadow);
 }
 
 .auth-header {
@@ -243,24 +247,25 @@ if (isAuthenticated.value) {
   gap: 0.5rem;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #d4af37;
+  color: var(--primary-dark);
   letter-spacing: 2px;
   margin-bottom: 1.5rem;
 }
 
 .logo i {
   font-size: 1.8rem;
+  color: var(--accent);
 }
 
 .auth-header h1 {
   font-family: 'Playfair Display', serif;
-  font-size: 1.8rem;
-  color: #f4e5c2;
+  font-size: 1.9rem;
+  color: var(--primary-dark);
   margin-bottom: 0.5rem;
 }
 
 .auth-header p {
-  color: rgba(244, 229, 194, 0.6);
+  color: #5b6b86;
   font-size: 0.95rem;
 }
 
@@ -275,7 +280,7 @@ if (isAuthenticated.value) {
 .form-group label {
   display: block;
   font-size: 0.875rem;
-  color: #f4e5c2;
+  color: var(--primary-dark);
   margin-bottom: 0.5rem;
   font-weight: 500;
 }
@@ -296,22 +301,23 @@ if (isAuthenticated.value) {
 .input-wrapper input {
   width: 100%;
   padding: 0.875rem 1rem 0.875rem 2.75rem;
-  background: rgba(10, 10, 10, 0.6);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  background: #f6f8ff;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #f4e5c2;
+  color: var(--primary-dark);
   font-size: 1rem;
   transition: all 0.3s ease;
 }
 
 .input-wrapper input:focus {
   outline: none;
-  border-color: #d4af37;
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(31, 79, 163, 0.12);
+  background: #ffffff;
 }
 
 .input-wrapper input::placeholder {
-  color: rgba(244, 229, 194, 0.3);
+  color: #9aa5bc;
 }
 
 .toggle-password {
@@ -341,6 +347,7 @@ if (isAuthenticated.value) {
   align-items: center;
   margin-bottom: 1.5rem;
   font-size: 0.875rem;
+  color: #5b6b86;
 }
 
 .remember-me {
@@ -352,11 +359,11 @@ if (isAuthenticated.value) {
 }
 
 .remember-me input[type='checkbox'] {
-  accent-color: #d4af37;
+  accent-color: var(--primary);
 }
 
 .forgot-link {
-  color: #d4af37;
+  color: var(--primary);
   text-decoration: none;
   transition: opacity 0.3s ease;
 }
@@ -368,10 +375,10 @@ if (isAuthenticated.value) {
 .btn-submit {
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, #d4af37 0%, #b8962e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #ff9f43 45%, var(--primary) 100%);
   border: none;
   border-radius: 8px;
-  color: #0a0a0a;
+  color: #0f172a;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -380,6 +387,7 @@ if (isAuthenticated.value) {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  box-shadow: 0 16px 32px rgba(31, 79, 163, 0.18);
 }
 
 .btn-submit:hover:not(:disabled) {
@@ -420,28 +428,28 @@ if (isAuthenticated.value) {
 .alert-danger {
   background: rgba(220, 53, 69, 0.1);
   border: 1px solid rgba(220, 53, 69, 0.3);
-  color: #f8d7da;
+  color: #c92c3a;
 }
 
 .alert-success {
   background: rgba(25, 135, 84, 0.1);
   border: 1px solid rgba(25, 135, 84, 0.3);
-  color: #d1e7dd;
+  color: #0f5132;
 }
 
 .auth-footer {
   text-align: center;
   padding-top: 1.5rem;
-  border-top: 1px solid rgba(212, 175, 55, 0.1);
+  border-top: 1px solid var(--border);
 }
 
 .auth-footer p {
-  color: rgba(244, 229, 194, 0.6);
+  color: #5b6b86;
   font-size: 0.9rem;
 }
 
 .auth-footer a {
-  color: #d4af37;
+  color: var(--primary);
   text-decoration: none;
   font-weight: 500;
 }
@@ -456,7 +464,7 @@ if (isAuthenticated.value) {
 }
 
 .back-home a {
-  color: rgba(244, 229, 194, 0.5);
+  color: #5b6b86;
   text-decoration: none;
   font-size: 0.9rem;
   display: inline-flex;
@@ -466,14 +474,14 @@ if (isAuthenticated.value) {
 }
 
 .back-home a:hover {
-  color: #d4af37;
+  color: var(--primary);
 }
 
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(12, 22, 40, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -482,13 +490,14 @@ if (isAuthenticated.value) {
 }
 
 .modal-content {
-  background: rgba(20, 20, 20, 0.95);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  background: #ffffff;
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 2rem;
   max-width: 400px;
   width: 100%;
   position: relative;
+  box-shadow: var(--shadow);
 }
 
 .modal-close {
@@ -497,24 +506,24 @@ if (isAuthenticated.value) {
   right: 1rem;
   background: none;
   border: none;
-  color: rgba(244, 229, 194, 0.5);
+  color: #5b6b86;
   cursor: pointer;
   font-size: 1.2rem;
   transition: color 0.3s ease;
 }
 
 .modal-close:hover {
-  color: #d4af37;
+  color: var(--primary);
 }
 
 .modal-content h2 {
   font-family: 'Playfair Display', serif;
-  color: #f4e5c2;
+  color: var(--primary-dark);
   margin-bottom: 0.5rem;
 }
 
 .modal-content p {
-  color: rgba(244, 229, 194, 0.6);
+  color: #5b6b86;
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
 }

@@ -256,13 +256,11 @@ const closeQRModal = () => {
 
 <style scoped>
 .luxury-list-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow);
   animation: slideIn 0.8s ease-out 0.2s both;
 }
 
@@ -278,9 +276,9 @@ const closeQRModal = () => {
 }
 
 .list-header {
-  padding: 2rem;
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
-  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  padding: 1.6rem;
+  background: linear-gradient(135deg, rgba(31, 79, 163, 0.08) 0%, rgba(246, 196, 0, 0.14) 100%);
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -297,33 +295,34 @@ const closeQRModal = () => {
 .title-icon {
   width: 50px;
   height: 50px;
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.1) 100%);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  border-radius: 12px;
+  background: linear-gradient(135deg, var(--primary) 0%, #8cc4ff 100%);
+  border: 1px solid #d3e5ff;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #d4af37;
+  color: #ffffff;
   font-size: 1.5rem;
 }
 
 .header-title h5 {
-  color: #f4e5c2;
-  font-size: 1.3rem;
+  color: var(--primary-dark);
+  font-size: 1.25rem;
   font-weight: 600;
 }
 
 .text-gold-dim {
-  color: rgba(244, 229, 194, 0.5);
-  font-size: 0.85rem;
+  color: #5b6b86;
+  font-size: 0.9rem;
 }
 
 .filter-tabs {
   display: flex;
   gap: 0.5rem;
-  background: rgba(0, 0, 0, 0.2);
+  background: #f6f8ff;
   padding: 0.4rem;
   border-radius: 12px;
+  border: 1px solid var(--border);
 }
 
 .tab-btn {
@@ -331,7 +330,7 @@ const closeQRModal = () => {
   padding: 0.6rem 1.2rem;
   background: transparent;
   border: none;
-  color: rgba(244, 229, 194, 0.6);
+  color: rgba(21, 52, 109, 0.65);
   font-size: 0.85rem;
   font-weight: 500;
   border-radius: 8px;
@@ -344,19 +343,19 @@ const closeQRModal = () => {
 }
 
 .tab-btn:hover {
-  color: #f4e5c2;
-  background: rgba(212, 175, 55, 0.1);
+  color: var(--primary-dark);
+  background: rgba(31, 79, 163, 0.08);
 }
 
 .tab-btn.active {
-  color: #0a0a0a;
+  color: #0f172a;
   font-weight: 600;
 }
 
 .tab-glow {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #d4af37 0%, #f4e5c2 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #ffd84d 40%, var(--primary) 100%);
   border-radius: 8px;
   opacity: 0;
   transform: scale(0.8);
@@ -373,6 +372,7 @@ const closeQRModal = () => {
   padding: 1.5rem;
   max-height: 600px;
   overflow-y: auto;
+  background: #ffffff;
 }
 
 .list-body::-webkit-scrollbar {
@@ -380,12 +380,12 @@ const closeQRModal = () => {
 }
 
 .list-body::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+  background: #eef2fb;
   border-radius: 3px;
 }
 
 .list-body::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 55, 0.3);
+  background: rgba(31, 79, 163, 0.35);
   border-radius: 3px;
 }
 
@@ -397,18 +397,18 @@ const closeQRModal = () => {
 
 .reservation-item {
   position: relative;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(212, 175, 55, 0.1);
+  background: #f6f8ff;
+  border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1.25rem;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
 .reservation-item:hover {
   transform: translateY(-2px) scale(1.01);
-  border-color: rgba(212, 175, 55, 0.3);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(31, 79, 163, 0.2);
+  box-shadow: 0 16px 36px rgba(31, 79, 163, 0.12);
 }
 
 .item-glow {
@@ -439,6 +439,7 @@ const closeQRModal = () => {
   grid-template-columns: 1.5fr 1fr 1fr auto;
   gap: 1.5rem;
   align-items: center;
+  color: var(--primary-dark);
 }
 
 .guest-info {
@@ -456,12 +457,12 @@ const closeQRModal = () => {
 .avatar {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #d4af37 0%, #f4e5c2 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #8cc4ff 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0a0a0a;
+  color: #ffffff;
   font-weight: 700;
   font-size: 1.2rem;
   position: relative;
@@ -484,7 +485,7 @@ const closeQRModal = () => {
 }
 
 .guest-name {
-  color: #f4e5c2;
+  color: var(--primary-dark);
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 0.3rem;
@@ -497,7 +498,7 @@ const closeQRModal = () => {
 }
 
 .meta-item {
-  color: rgba(244, 229, 194, 0.5);
+  color: #5b6b86;
   font-size: 0.8rem;
   display: flex;
   align-items: center;
@@ -505,7 +506,7 @@ const closeQRModal = () => {
 }
 
 .meta-item i {
-  color: #d4af37;
+  color: var(--primary);
   font-size: 0.75rem;
 }
 
@@ -520,16 +521,16 @@ const closeQRModal = () => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.8rem;
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  background: #ffffff;
+  border: 1px solid var(--border);
   border-radius: 20px;
   font-size: 0.85rem;
-  color: #f4e5c2;
+  color: var(--primary-dark);
   width: fit-content;
 }
 
 .info-pill i {
-  color: #d4af37;
+  color: var(--accent);
   font-size: 0.8rem;
 }
 
@@ -544,10 +545,10 @@ const closeQRModal = () => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.1) 100%);
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: linear-gradient(135deg, rgba(31, 79, 163, 0.08) 0%, rgba(246, 196, 0, 0.2) 100%);
+  border: 1px solid #dfe7f7;
   border-radius: 8px;
-  color: #d4af37;
+  color: var(--primary-dark);
   font-weight: 600;
   font-size: 0.9rem;
   width: fit-content;
@@ -558,15 +559,15 @@ const closeQRModal = () => {
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: rgba(255, 193, 7, 0.1);
+  background: rgba(255, 229, 160, 0.4);
   border-radius: 6px;
   font-size: 0.8rem;
-  color: rgba(244, 229, 194, 0.7);
+  color: #704600;
   max-width: 200px;
 }
 
 .special-note i {
-  color: #ffc107;
+  color: #ff9f43;
   margin-top: 0.1rem;
 }
 
@@ -590,21 +591,21 @@ const closeQRModal = () => {
 }
 
 .status-badge.confirmed {
-  background: rgba(40, 167, 69, 0.2);
+  background: rgba(126, 217, 87, 0.22);
   color: #28a745;
-  border: 1px solid rgba(40, 167, 69, 0.3);
+  border: 1px solid #c3f2c5;
 }
 
 .status-badge.pending {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
-  border: 1px solid rgba(255, 193, 7, 0.3);
+  background: rgba(246, 196, 0, 0.18);
+  color: #b87400;
+  border: 1px solid #ffe7a6;
 }
 
 .status-badge.cancelled {
-  background: rgba(220, 53, 69, 0.2);
-  color: #dc3545;
-  border: 1px solid rgba(220, 53, 69, 0.3);
+  background: rgba(255, 107, 107, 0.18);
+  color: #c92c3a;
+  border: 1px solid #ffd0d5;
 }
 
 .status-dot {
@@ -652,10 +653,12 @@ const closeQRModal = () => {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.9rem;
+  background: #ffffff;
+  border: 1px solid var(--border);
 }
 
 .action-btn.confirm {
-  background: rgba(40, 167, 69, 0.2);
+  background: rgba(126, 217, 87, 0.18);
   color: #28a745;
 }
 
@@ -667,20 +670,20 @@ const closeQRModal = () => {
 }
 
 .action-btn.cancel {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
+  background: rgba(246, 196, 0, 0.18);
+  color: #b87400;
 }
 
 .action-btn.cancel:hover {
-  background: #ffc107;
-  color: #0a0a0a;
+  background: #ffd84d;
+  color: #0f172a;
   transform: scale(1.1);
   box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
 }
 
 .action-btn.delete {
-  background: rgba(220, 53, 69, 0.2);
-  color: #dc3545;
+  background: rgba(255, 107, 107, 0.18);
+  color: #c92c3a;
 }
 
 .action-btn.delete:hover {
@@ -691,22 +694,22 @@ const closeQRModal = () => {
 }
 
 .action-btn.qrcode {
-  background: rgba(212, 175, 55, 0.2);
-  color: #d4af37;
+  background: rgba(31, 79, 163, 0.12);
+  color: var(--primary);
 }
 
 .action-btn.qrcode:hover {
-  background: #d4af37;
-  color: #0a0a0a;
+  background: var(--primary);
+  color: #ffffff;
   transform: scale(1.1);
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+  box-shadow: 0 4px 15px rgba(31, 79, 163, 0.35);
 }
 
 /* QR Modal Styles */
 .qr-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(12, 22, 40, 0.55);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -725,14 +728,14 @@ const closeQRModal = () => {
 }
 
 .qr-modal-content {
-  background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(20, 20, 20, 0.95) 100%);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  border-radius: 20px;
-  padding: 2rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f6f8ff 100%);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.6rem;
   min-width: 320px;
   max-width: 90%;
   animation: scaleIn 0.3s ease;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 22px 48px rgba(31, 79, 163, 0.2);
 }
 
 @keyframes scaleIn {
@@ -754,9 +757,9 @@ const closeQRModal = () => {
 }
 
 .qr-modal-header h5 {
-  color: #f4e5c2;
-  font-size: 1.3rem;
-  font-weight: 600;
+  color: var(--primary-dark);
+  font-size: 1.25rem;
+  font-weight: 700;
   margin: 0;
 }
 
@@ -764,9 +767,9 @@ const closeQRModal = () => {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  background: rgba(212, 175, 55, 0.1);
-  color: #f4e5c2;
+  border: 1px solid var(--border);
+  background: rgba(31, 79, 163, 0.08);
+  color: var(--primary-dark);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -785,6 +788,7 @@ const closeQRModal = () => {
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
+  color: var(--primary-dark);
 }
 
 .qr-code-container {
@@ -802,7 +806,7 @@ const closeQRModal = () => {
 
 .qr-info {
   text-align: center;
-  color: #f4e5c2;
+  color: var(--primary-dark);
 }
 
 .qr-info p {
@@ -811,20 +815,20 @@ const closeQRModal = () => {
 }
 
 .qr-info strong {
-  color: #d4af37;
+  color: var(--primary);
 }
 
 .qr-instruction {
   margin-top: 1rem !important;
   padding: 0.75rem;
-  background: rgba(212, 175, 55, 0.1);
+  background: rgba(31, 79, 163, 0.08);
   border-radius: 8px;
   font-size: 0.85rem !important;
-  color: rgba(244, 229, 194, 0.8) !important;
+  color: #1f2f4d !important;
 }
 
 .qr-instruction a {
-  color: #d4af37;
+  color: var(--primary);
   text-decoration: none;
   font-weight: 600;
 }
@@ -836,7 +840,7 @@ const closeQRModal = () => {
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  color: rgba(244, 229, 194, 0.4);
+  color: #8a97af;
 }
 
 .empty-icon {
@@ -846,14 +850,14 @@ const closeQRModal = () => {
 }
 
 .empty-state h6 {
-  color: rgba(244, 229, 194, 0.7);
+  color: var(--primary-dark);
   margin-bottom: 0.5rem;
 }
 
 .list-footer {
-  padding: 1.5rem 2rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(212, 175, 55, 0.1);
+  padding: 1.4rem 1.6rem;
+  background: #f6f8ff;
+  border-top: 1px solid var(--border);
 }
 
 .stats-line {
@@ -866,8 +870,8 @@ const closeQRModal = () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(244, 229, 194, 0.6);
-  font-size: 0.9rem;
+  color: #5b6b86;
+  font-size: 0.92rem;
 }
 
 .stat-item i {
