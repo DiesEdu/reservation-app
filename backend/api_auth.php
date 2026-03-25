@@ -142,6 +142,9 @@ function registerUser()
 
         $userId = (int) $pdo->lastInsertId();
 
+        // Send verification email
+        $emailSent = sendVerificationEmail($email, $name, $verificationToken);
+
         // Generate tokens
         $accessToken = generateToken($userId, $email, $role, 'access');
         $refreshToken = generateToken($userId, $email, $role, 'refresh');
@@ -152,16 +155,18 @@ function registerUser()
         http_response_code(201);
         echo json_encode([
             'success' => true,
-            'message' => 'Registration successful',
+            'message' => 'Registration successful. Please check your email to verify your account.',
             'data' => [
                 'user' => [
                     'id' => $userId,
                     'email' => $email,
                     'name' => $name,
-                    'role' => $role
+                    'role' => $role,
+                    'email_verified' => 0
                 ],
                 'accessToken' => $accessToken,
-                'refreshToken' => $refreshToken
+                'refreshToken' => $refreshToken,
+                'verificationEmailSent' => $emailSent
             ]
         ]);
     } catch (PDOException $e) {

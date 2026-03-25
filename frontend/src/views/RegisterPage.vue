@@ -208,11 +208,21 @@ const handleRegister = async () => {
   loading.value = false
 
   if (result.success) {
-    successMessage.value = 'Account created successfully! Redirecting...'
-    // Redirect based on role
-    setTimeout(() => {
-      router.push('/')
-    }, 1500)
+    // Use the message from backend which includes email verification info
+    successMessage.value = result.message || 'Account created successfully! Redirecting...'
+
+    // If email verification is needed, show appropriate message
+    if (result.needsVerification) {
+      // Don't redirect immediately, let user see the success message
+      setTimeout(() => {
+        router.push('/')
+      }, 3000)
+    } else {
+      // Redirect based on role
+      setTimeout(() => {
+        router.push('/')
+      }, 1500)
+    }
   } else {
     error.value = result.error
   }

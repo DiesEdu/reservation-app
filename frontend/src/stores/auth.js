@@ -57,7 +57,16 @@ export const useAuthStore = defineStore('auth', () => {
         // Store user
         user.value = data.data.user
 
-        return { success: true }
+        // Check if email verification is required
+        const needsVerification = data.data.user?.email_verified === 0
+        const emailSent = data.data.verificationEmailSent
+
+        return {
+          success: true,
+          needsVerification,
+          emailSent,
+          message: data.message,
+        }
       } else {
         error.value = data.error || 'Registration failed'
         return { success: false, error: data.error }
@@ -261,7 +270,7 @@ export const useAuthStore = defineStore('auth', () => {
         return { success: false, error: data.error }
       }
     } catch (err) {
-      error.value = 'Network error: Unable to connect to server'
+      error.value = 'Network error: Unable to connect to server: ' + err.message
       return { success: false, error: error.value }
     } finally {
       loading.value = false
@@ -296,7 +305,7 @@ export const useAuthStore = defineStore('auth', () => {
         return { success: false, error: data.error }
       }
     } catch (err) {
-      error.value = 'Network error: Unable to connect to server'
+      error.value = 'Network error: Unable to connect to server: ' + err.message
       return { success: false, error: error.value }
     } finally {
       loading.value = false
