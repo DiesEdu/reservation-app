@@ -93,6 +93,16 @@
                       <option value="cancelled">Cancelled</option>
                     </select>
                     <input
+                      v-model="tableFilter"
+                      list="table-options"
+                      class="filter-select"
+                      placeholder="All Tables"
+                    />
+                    <datalist id="table-options">
+                      <option value=""></option>
+                      <option v-for="table in tableOptions" :key="table" :value="table"></option>
+                    </datalist>
+                    <input
                       v-model="dateFilter"
                       type="date"
                       class="date-input"
@@ -470,10 +480,13 @@ const accessDenied = ref(false)
 const searchQuery = ref('')
 const statusFilter = ref('')
 const dateFilter = ref('')
+const tableFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = 10
 const sortField = ref('date')
 const sortDirection = ref('desc')
+
+const tableOptions = computed(() => store.tableNames || [])
 
 // Check access permission - only admin and staff can access
 const canAccess = computed(() => authStore.canAccessConfirmation)
@@ -502,6 +515,12 @@ const searchResults = computed(() => {
   // Filter by date
   if (dateFilter.value) {
     results = results.filter((r) => r.date === dateFilter.value)
+  }
+
+  // Filter by table name
+  if (tableFilter.value) {
+    const tableQuery = tableFilter.value.toString().toLowerCase()
+    results = results.filter((r) => (r.table || '').toString().toLowerCase() === tableQuery)
   }
 
   // Sort results
@@ -534,7 +553,7 @@ const paginatedResults = computed(() => {
 })
 
 // Reset page when filters change
-watch([searchQuery, statusFilter, dateFilter], () => {
+watch([searchQuery, statusFilter, dateFilter, tableFilter], () => {
   currentPage.value = 1
 })
 
@@ -558,6 +577,7 @@ const clearFilters = () => {
   searchQuery.value = ''
   statusFilter.value = ''
   dateFilter.value = ''
+  tableFilter.value = ''
   currentPage.value = 1
 }
 
@@ -568,6 +588,7 @@ onMounted(async () => {
     accessDenied.value = true
   } else {
     store.fetchReservations()
+    store.fetchTableNames()
   }
 })
 

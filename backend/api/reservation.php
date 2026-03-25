@@ -72,6 +72,9 @@ if ($path === '/reservations' || $path === '/reservations/') {
 } elseif ($path === '/reservations/import' && $method === 'POST') {
     // Bulk import reservations from Excel
     importReservationsFromExcel();
+} elseif ($path === '/reservations/table-preferences' && $method === 'GET') {
+    // Get distinct table names used in reservations
+    getTablePreferences();
 } else {
     http_response_code(404);
     echo json_encode(['success' => false, 'error' => 'Endpoint not found']);
@@ -378,6 +381,31 @@ function getReservations()
         echo json_encode([
             'success' => false,
             'error' => 'Failed to fetch reservations: ' . $e->getMessage()
+        ]);
+    }
+}
+
+/**
+ * GET distinct table preferences
+ */
+function getTablePreferences()
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    try {
+        $stmt = $pdo->query("SELECT DISTINCT table_preference FROM reservations WHERE table_preference IS NOT NULL AND table_preference <> '' ORDER BY table_preference ASC");
+        $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        echo json_encode([
+            'success' => true,
+            'data' => $tables
+        ]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to fetch table preferences: ' . $e->getMessage()
         ]);
     }
 }

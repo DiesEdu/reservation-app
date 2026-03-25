@@ -6,6 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 export const useReservationStore = defineStore('reservations', () => {
   const reservations = ref([])
+  const tableNames = ref([])
   const loading = ref(false)
   const error = ref(null)
 
@@ -31,6 +32,24 @@ export const useReservationStore = defineStore('reservations', () => {
       console.error('Error fetching reservations:', err)
     } finally {
       loading.value = false
+    }
+  }
+
+  // Fetch distinct table names from backend
+  const fetchTableNames = async () => {
+    error.value = null
+    try {
+      const response = await fetch(`${API_URL}/reservations/table-preferences`)
+      const data = await response.json()
+
+      if (data.success) {
+        tableNames.value = data.data || []
+      } else {
+        error.value = data.error || 'Failed to fetch table names'
+      }
+    } catch (err) {
+      error.value = 'Network error: Unable to connect to server'
+      console.error('Error fetching table names:', err)
     }
   }
 
@@ -157,6 +176,7 @@ export const useReservationStore = defineStore('reservations', () => {
     loading,
     error,
     fetchReservations,
+    fetchTableNames,
     addReservation,
     updateStatus,
     deleteReservation,
@@ -164,5 +184,6 @@ export const useReservationStore = defineStore('reservations', () => {
     confirmedCount,
     pendingCount,
     cancelledCount,
+    tableNames,
   }
 })
