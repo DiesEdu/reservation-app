@@ -47,7 +47,7 @@
                 </router-link>
                 <div class="dropdown">
                   <button
-                    class="btn btn-outline-light btn-sm dropdown-toggle"
+                    class="btn btn-sm dropdown-toggle user-menu-btn"
                     type="button"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
@@ -59,11 +59,6 @@
                       <span class="dropdown-item-text user-email">{{ userEmail }}</span>
                     </li>
                     <li><hr class="dropdown-divider" /></li>
-                    <li>
-                      <router-link to="/analytics" class="dropdown-item">
-                        <i class="bi bi-bar-chart me-2"></i>Analytics
-                      </router-link>
-                    </li>
                     <li>
                       <router-link to="/profile" class="dropdown-item">
                         <i class="bi bi-person me-2"></i>My Profile
@@ -215,6 +210,21 @@ const handleLogout = async () => {
 /* Dropdown Styles */
 .btn-gold.dropdown-toggle::after {
   margin-left: 0.5rem;
+}
+
+.user-menu-btn {
+  color: var(--primary-dark);
+  border: 1px solid var(--primary-dark);
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.user-menu-btn:hover,
+.user-menu-btn:focus {
+  color: #ffffff;
+  background: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 10px 22px rgba(31, 79, 163, 0.18);
 }
 
 .dropdown-menu {

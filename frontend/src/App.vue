@@ -46,7 +46,7 @@ onMounted(async () => {
 })
 
 const showNavbar = computed(() => {
-  return ['home', 'login', 'register'].includes(route.name)
+  return route.name === 'home'
 })
 
 const showFooter = computed(() => {

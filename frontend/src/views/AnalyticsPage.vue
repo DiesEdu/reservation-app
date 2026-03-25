@@ -1,5 +1,6 @@
 <template>
   <div class="analytics-page">
+    <Navbar />
     <!-- Access Denied Message -->
     <div v-if="accessDenied" class="access-denied-container">
       <div class="access-denied-card">
@@ -470,6 +471,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useReservationStore } from '../stores/reservations'
 import { useAuthStore } from '../stores/auth'
+import Navbar from '../components/Navbar.vue'
 
 const store = useReservationStore()
 const authStore = useAuthStore()
@@ -882,6 +884,7 @@ const formatTime = (timeStr) => {
   min-height: 100vh;
   background: var(--bg);
   color: var(--primary-dark);
+  padding-top: 90px; /* offset fixed Navbar height */
   padding-bottom: 3rem;
 }
 

@@ -99,14 +99,14 @@
                 <i class="bi bi-person"></i>
                 <span>Customer</span>
               </button>
-              <button
+              <!-- <button
                 type="button"
                 :class="['role-btn', { active: role === 'staff' }]"
                 @click="role = 'staff'"
               >
                 <i class="bi bi-briefcase"></i>
                 <span>Staff</span>
-              </button>
+              </button> -->
             </div>
           </div>
 
@@ -248,10 +248,10 @@ if (isAuthenticated.value) {
   padding: 2rem;
   position: relative;
   z-index: 1;
-  background: radial-gradient(circle at 10% 20%, rgba(31, 79, 163, 0.08), transparent 35%),
+  background:
+    radial-gradient(circle at 10% 20%, rgba(31, 79, 163, 0.08), transparent 35%),
     radial-gradient(circle at 90% 25%, rgba(246, 196, 0, 0.12), transparent 38%),
-    radial-gradient(circle at 15% 85%, rgba(255, 107, 107, 0.12), transparent 35%),
-    var(--bg);
+    radial-gradient(circle at 15% 85%, rgba(255, 107, 107, 0.12), transparent 35%), var(--bg);
 }
 
 .auth-container {
