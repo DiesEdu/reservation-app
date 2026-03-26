@@ -37,7 +37,7 @@ $path = str_replace('/api', '', $path);
 // Debug: log after removing /api
 // error_log("Path after remove /api: " . $path);
 
-if (preg_match('#^/blast-info-email/(\d+)/ticket$#', $path, $matches) && $method === 'POST') {
+if ($path === '/blast-info-email/ticket' && $method === 'POST') {
     // Debug: log if route matched
     // error_log("Route matched, reservation ID: " . $matches[1]);
 
@@ -48,7 +48,7 @@ if (preg_match('#^/blast-info-email/(\d+)/ticket$#', $path, $matches) && $method
         echo json_encode(['success' => false, 'error' => 'Content-Type must be application/json']);
         return;
     }
-    createBlastInfo((int) $matches[1]);
+    createBlastInfo();
 } else {
     // Debug: Show what path was actually received
     http_response_code(404);
@@ -58,12 +58,12 @@ if (preg_match('#^/blast-info-email/(\d+)/ticket$#', $path, $matches) && $method
         'debug' => [
             'received_path' => $path,
             'method' => $method,
-            'expected_pattern' => '/blast-info-email/{id}/ticket'
+            'expected_pattern' => '/blast-info-email/ticket'
         ]
     ]);
 }
 
-function createBlastInfo($reservationId)
+function createBlastInfo()
 {
     // $auth = requireAuth();
 
@@ -80,56 +80,48 @@ function createBlastInfo($reservationId)
         //     return;
         // }
 
-        // Add validation for $id
-        // Debug: log what we received
-        // error_log("Received reservationId: " . $reservationId . " (type: " . gettype($reservationId) . ")");
+        // Fetch all reservations that have not been emailed yet
+        $stmt = $pdo->prepare("
+            SELECT id, name, position, company, table_preference, qr_code, email
+            FROM reservations
+            WHERE send_email IS NULL OR send_email = ''
+        ");
+        $stmt->execute();
+        $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!is_numeric($reservationId) || (int) $reservationId <= 0) {
-            http_response_code(400);
-            header('Content-Type: application/json');
+        if (!$reservations) {
+            http_response_code(200);
             echo json_encode([
-                'success' => false,
-                'error' => 'Invalid reservation ID',
-                'debug' => [
-                    'received_value' => $reservationId,
-                    'received_type' => gettype($reservationId),
-                    'is_numeric' => is_numeric($reservationId),
-                    'casted_value' => (int) $reservationId
-                ]
+                'success' => true,
+                'message' => 'No pending reservations to email',
+                'sent' => 0,
+                'failed' => 0
             ]);
             return;
         }
 
-        $stmt = $pdo->prepare("SELECT name, position, company, table_preference, qr_code, email FROM reservations WHERE id = ?");
-        $stmt->execute([$reservationId]);
-        $reservation = $stmt->fetch();
+        $updateStmt = $pdo->prepare("UPDATE reservations SET send_email = NOW() WHERE id = ?");
 
-        if (!$reservation) {
-            http_response_code(404);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'error' => 'Reservation not found'
-            ]);
-            return;
-        }
+        $sentCount = 0;
+        $failed = [];
 
-        // Send verification email with ticket attached
-        $sent = sendInformationEmail($reservation['email'], $reservation['name'], $reservationId);
+        foreach ($reservations as $reservation) {
+            $sent = sendInformationEmail($reservation['email'], $reservation['name'], $reservation['id']);
 
-        if (!$sent) {
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'error' => 'Unable to send email'
-            ]);
-            return;
+            if ($sent) {
+                $updateStmt->execute([$reservation['id']]);
+                $sentCount++;
+            } else {
+                $failed[] = $reservation['id'];
+            }
         }
 
         http_response_code(200);
         echo json_encode([
             'success' => true,
-            'message' => 'Email sent successfully'
+            'message' => 'Blast email process completed',
+            'sent' => $sentCount,
+            'failed' => $failed
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
@@ -217,7 +209,7 @@ function generateTicketImage($reservationId)
         $name = $reservation['name'];
         $position = $reservation['position'];
         $company = $reservation['company'];
-        $table = $reservation['table_preference'];
+        $table = 'Table: ' . $reservation['table_preference'];
         $qrData = $reservation['qr_code'];
 
         $nameSize = max(28, (int) ($width * 0.035));
@@ -416,7 +408,7 @@ function renderReservationTicket($id)
         $name = $reservation['name'];
         $position = $reservation['position'];
         $company = $reservation['company'];
-        $table = $reservation['table_preference'];
+        $table = 'Table: ' . $reservation['table_preference'];
         $qrData = $reservation['qr_code'];
 
         $nameSize = max(28, (int) ($width * 0.035));
