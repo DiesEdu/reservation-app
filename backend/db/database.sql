@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS reservations (
     status ENUM('pending', 'confirmed', 'cancelled') NOT NULL DEFAULT 'pending',
     special_requests TEXT,
     qr_code VARCHAR(255),
+    send_email DATETIME NULL,
+    send_whatsapp DATETIME NULL,
     verified BOOLEAN NOT NULL DEFAULT FALSE,
     verified_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

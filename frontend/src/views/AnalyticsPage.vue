@@ -1520,7 +1520,7 @@ const summaryStats = computed(() => {
   color: #1f7a2f;
 }
 .empty-message {
-  text-align: center;
+  text-align: center !important;
   padding: 2.5rem !important;
   color: #8a97af;
 }

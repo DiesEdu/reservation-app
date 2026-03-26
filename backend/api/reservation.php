@@ -1013,7 +1013,8 @@ function importReservationsFromExcel()
             ]);
 
             $newId = (int) $pdo->lastInsertId();
-            $qrCode = 'RES-' . $newId . '-' . time();
+            $randomSuffix = strtoupper(bin2hex(random_bytes(2))); // 4-char alphanumeric
+            $qrCode = 'RES-' . $newId . '-' . time() . '-' . $randomSuffix;
             $qrStmt->execute([$qrCode, $newId]);
 
             $inserted++;

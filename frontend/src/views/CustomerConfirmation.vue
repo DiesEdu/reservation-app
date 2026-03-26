@@ -1,6 +1,5 @@
 <template>
   <div class="customer-confirmation">
-    <Navbar />
     <!-- Access Denied Message -->
     <div v-if="accessDenied" class="access-denied">
       <div class="access-denied-card">
@@ -26,14 +25,28 @@
     <div class="container">
       <div class="confirmation-wrapper">
         <!-- Header -->
-        <div class="confirmation-header">
+        <!-- <div class="confirmation-header">
           <div class="logo-section">
             <img src="/new-iforte.png" alt="Resonanz Logo" class="logo-icon" />
-            <!-- <i class="bi bi-gem"></i>
-            <h1>RESONANZ RESERVE</h1> -->
           </div>
           <p class="subtitle">Reservation Confirmation</p>
-        </div>
+        </div> -->
+
+        <section class="hero-section">
+          <div class="hero-content">
+            <h1 class="hero-title">
+              <span class="title-line">Halal Bihalal</span>
+              <span class="title-line"
+                ><img src="/connected-in-harmony.png" alt="Resonanz Logo" class="logo-icon"
+              /></span>
+            </h1>
+            <p class="hero-subtitle">
+              bersama
+              <span><img src="/new-iforte.png" alt="Resonanz Logo" class="logo-icon" /></span>
+            </p>
+            <div class="hero-line"></div>
+          </div>
+        </section>
 
         <!-- QR Scanner Section -->
         <div v-if="!reservationData" class="scanner-section">
@@ -44,28 +57,8 @@
               <p>Please scan the QR code from your reservation confirmation</p>
             </div>
 
-            <!-- QR Scanner -->
-            <div class="scanner-container">
-              <div v-show="!scannerActive" class="scanner-placeholder">
-                <button @click="startScanner" class="btn-start-scan">
-                  <i class="bi bi-camera"></i>
-                  <span>Start Camera</span>
-                </button>
-              </div>
-              <div v-show="scannerActive">
-                <div id="qr-reader" class="qr-reader"></div>
-                <button @click="stopScanner" class="btn-stop-scan">
-                  <i class="bi bi-x-circle"></i>
-                  <span>Stop Scanner</span>
-                </button>
-              </div>
-            </div>
-
             <!-- Manual Entry Option -->
             <div class="manual-entry">
-              <div class="divider">
-                <span>OR</span>
-              </div>
               <form @submit.prevent="verifyManualCode" class="manual-form">
                 <div class="input-group">
                   <i class="bi bi-hash"></i>
@@ -87,6 +80,26 @@
               </form>
             </div>
 
+            <!-- QR Scanner -->
+            <div class="scanner-container">
+              <div class="divider">
+                <span>OR</span>
+              </div>
+              <div v-show="!scannerActive" class="scanner-placeholder">
+                <button @click="startScanner" class="btn-start-scan">
+                  <i class="bi bi-camera"></i>
+                  <span>Start Camera</span>
+                </button>
+              </div>
+              <div v-show="scannerActive">
+                <div id="qr-reader" class="qr-reader"></div>
+                <button @click="stopScanner" class="btn-stop-scan">
+                  <i class="bi bi-x-circle"></i>
+                  <span>Stop Scanner</span>
+                </button>
+              </div>
+            </div>
+
             <!-- Error Message -->
             <div v-if="errorMessage" class="alert-error">
               <i class="bi bi-exclamation-triangle"></i>
@@ -97,22 +110,6 @@
 
         <!-- Reservation Details Section -->
         <div v-else class="details-section">
-          <div class="success-animation">
-            <div class="checkmark-circle" :class="{ 'already-verified': alreadyVerified }">
-              <i :class="alreadyVerified ? 'bi bi-exclamation-lg' : 'bi bi-check-lg'"></i>
-            </div>
-            <h2 class="success-title">
-              {{ alreadyVerified ? 'Reservation Already Verified' : 'Reservation Confirmed!' }}
-            </h2>
-            <p class="success-subtitle">
-              {{
-                alreadyVerified
-                  ? 'This reservation was previously verified'
-                  : "We're excited to welcome you"
-              }}
-            </p>
-          </div>
-
           <!-- Prominent Table Display -->
           <div class="table-highlight">
             <div class="table-number">
@@ -138,6 +135,22 @@
               <span>Verified at {{ formatVerifiedDate(verifiedAt) }}</span>
             </div>
           </div>
+
+          <div class="success-animation">
+            <div class="checkmark-circle" :class="{ 'already-verified': alreadyVerified }">
+              <i :class="alreadyVerified ? 'bi bi-exclamation-lg' : 'bi bi-check-lg'"></i>
+            </div>
+            <h2 class="success-title">
+              {{ alreadyVerified ? 'Reservation Already Verified' : 'Reservation Confirmed!' }}
+            </h2>
+            <p class="success-subtitle">
+              {{
+                alreadyVerified
+                  ? 'This reservation was previously verified'
+                  : "We're excited to welcome you"
+              }}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -155,7 +168,6 @@
 <script setup>
 import { ref, computed, onUnmounted, onMounted, nextTick } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
-import Navbar from '../components/Navbar.vue'
 import { useAuthStore } from '@/stores/auth'
 
 // API Base URL
@@ -439,6 +451,131 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Hero Section */
+.hero-section {
+  text-align: center;
+  margin-bottom: 1rem;
+  animation: fadeInUp 1s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.5rem, 6vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+  color: var(--primary-dark);
+}
+
+.title-line {
+  display: block;
+  opacity: 0;
+  animation: slideUp 0.8s ease-out forwards;
+}
+
+.title-line img {
+  width: 45%;
+  height: auto;
+}
+
+.title-line:nth-child(1) {
+  animation-delay: 0.2s;
+}
+.title-line:nth-child(2) {
+  animation-delay: 0.4s;
+}
+.title-line:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.title-line.gold {
+  background: linear-gradient(135deg, #d4af37 0%, #f4e5c2 50%, #d4af37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation:
+    slideUp 0.8s ease-out 0.4s forwards,
+    shimmer 3s ease-in-out infinite;
+  background: linear-gradient(135deg, var(--accent) 0%, #ff9f43 50%, var(--primary) 100%);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: #5b6b86;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 2rem;
+  opacity: 0;
+  animation: fadeIn 1s ease-out 0.8s forwards;
+}
+
+.hero-subtitle span {
+  height: 30px;
+}
+
+.hero-subtitle span img {
+  width: 10%;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.hero-line {
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  margin: 0 auto;
+  opacity: 0;
+  animation: expandLine 1s ease-out 1s forwards;
+}
+
+@keyframes expandLine {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 100px;
+    opacity: 1;
+  }
+}
+
 .customer-confirmation {
   min-height: 100vh;
   background: var(--bg);
@@ -446,7 +583,7 @@ onUnmounted(() => {
   font-family: 'Poppins', 'Inter', sans-serif;
   position: relative;
   overflow-x: hidden;
-  padding: 7rem 0 3rem; /* offset fixed Navbar */
+  padding: 3rem 0 3rem; /* offset fixed Navbar */
 }
 
 /* Access Denied */
@@ -765,6 +902,7 @@ onUnmounted(() => {
 /* Manual entry */
 .manual-entry {
   margin-top: 1.6rem;
+  margin-bottom: 1.6rem;
 }
 .divider {
   text-align: center;
@@ -885,8 +1023,8 @@ onUnmounted(() => {
   margin-bottom: 1.8rem;
 }
 .checkmark-circle {
-  width: 96px;
-  height: 96px;
+  width: 48px;
+  height: 48px;
   margin: 0 auto 1.2rem;
   background: rgba(126, 217, 87, 0.18);
   border: 3px solid #28a745;
@@ -945,7 +1083,7 @@ onUnmounted(() => {
 }
 .table-value {
   font-family: 'Playfair Display', serif;
-  font-size: 4rem;
+  font-size: 8rem;
   font-weight: 800;
   color: var(--accent);
   line-height: 1;
