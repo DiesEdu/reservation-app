@@ -93,6 +93,11 @@
                       <option value="confirmed">Confirmed</option>
                       <option value="cancelled">Cancelled</option>
                     </select>
+                    <select v-model="verifiedFilter" class="filter-select">
+                      <option value="">All Verified</option>
+                      <option value="1">Verified</option>
+                      <option value="0">Not Verified</option>
+                    </select>
                     <input
                       v-model="tableFilter"
                       list="table-options"
@@ -103,12 +108,6 @@
                       <option value=""></option>
                       <option v-for="table in tableOptions" :key="table" :value="table"></option>
                     </datalist>
-                    <input
-                      v-model="dateFilter"
-                      type="date"
-                      class="date-input"
-                      placeholder="Filter by date"
-                    />
                     <button @click="clearFilters" class="btn-clear">
                       <i class="bi bi-x-circle"></i>
                       Clear
@@ -150,14 +149,6 @@
                           <i v-if="sortField === 'name'" :class="sortIcon"></i>
                         </th>
                         <th>Contact</th>
-                        <th @click="sortBy('date')" class="sortable">
-                          Date
-                          <i v-if="sortField === 'date'" :class="sortIcon"></i>
-                        </th>
-                        <th @click="sortBy('time')" class="sortable">
-                          Time
-                          <i v-if="sortField === 'time'" :class="sortIcon"></i>
-                        </th>
                         <th @click="sortBy('guests')" class="sortable">
                           Guests
                           <i v-if="sortField === 'guests'" :class="sortIcon"></i>
@@ -189,8 +180,6 @@
                             <span class="phone">{{ reservation.phone }}</span>
                           </div>
                         </td>
-                        <td>{{ formatDate(reservation.date) }}</td>
-                        <td>{{ formatTime(reservation.time) }}</td>
                         <td>{{ reservation.guests }}</td>
                         <td>{{ reservation.table }}</td>
                         <td>
@@ -210,7 +199,7 @@
                         </td>
                       </tr>
                       <tr v-if="paginatedResults.length === 0">
-                        <td colspan="8" class="empty-message">
+                        <td colspan="6" class="empty-message">
                           <i class="bi bi-inbox"></i>
                           No reservations found
                         </td>
@@ -242,241 +231,6 @@
               </div>
             </div>
           </section>
-
-          <!-- Charts Row -->
-          <section class="charts-section">
-            <div class="row g-4">
-              <!-- Status Distribution -->
-              <div class="col-lg-4">
-                <div class="chart-card">
-                  <div class="chart-header">
-                    <h3 class="chart-title">Reservation Status</h3>
-                  </div>
-                  <div class="chart-body">
-                    <div class="donut-chart">
-                      <svg viewBox="0 0 100 100" class="donut">
-                        <circle
-                          v-for="(segment, index) in statusSegments"
-                          :key="segment.label"
-                          cx="50"
-                          cy="50"
-                          r="40"
-                          fill="none"
-                          :stroke="segment.color"
-                          stroke-width="15"
-                          :stroke-dasharray="segment.dashArray"
-                          :stroke-dashoffset="segment.dashOffset"
-                          :style="{ animationDelay: `${index * 0.2}s` }"
-                        />
-                      </svg>
-                      <div class="donut-center">
-                        <span class="donut-total">{{ summaryStatsData.totalReservations }}</span>
-                        <span class="donut-label">Total</span>
-                      </div>
-                    </div>
-                    <div class="chart-legend">
-                      <div
-                        v-for="segment in statusSegments"
-                        :key="segment.label"
-                        class="legend-item"
-                      >
-                        <span class="legend-dot" :style="{ background: segment.color }"></span>
-                        <span class="legend-label">{{ segment.label }}</span>
-                        <span class="legend-value">{{ segment.count }}</span>
-                        <span class="legend-percent">{{ segment.percent }}%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Reservations by Date -->
-              <div class="col-lg-8">
-                <div class="chart-card">
-                  <div class="chart-header">
-                    <h3 class="chart-title">Reservations Over Time</h3>
-                  </div>
-                  <div class="chart-body">
-                    <div class="bar-chart">
-                      <div v-for="day in reservationsByDate" :key="day.date" class="bar-container">
-                        <div
-                          class="bar"
-                          :style="{ height: `${day.percent}%` }"
-                          :title="`${day.count} reservations`"
-                        >
-                          <span class="bar-value">{{ day.count }}</span>
-                        </div>
-                        <span class="bar-label">{{ day.label }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Second Charts Row -->
-          <section class="charts-section">
-            <div class="row g-4">
-              <!-- Guests Distribution -->
-              <div class="col-lg-6">
-                <div class="chart-card">
-                  <div class="chart-header">
-                    <h3 class="chart-title">Guests Distribution</h3>
-                  </div>
-                  <div class="chart-body">
-                    <div class="guests-chart">
-                      <div v-for="group in guestsDistribution" :key="group.range" class="guest-bar">
-                        <div class="guest-bar-wrapper">
-                          <div class="guest-bar-fill" :style="{ width: `${group.percent}%` }"></div>
-                        </div>
-                        <span class="guest-range">{{ group.range }}</span>
-                        <span class="guest-count">{{ group.count }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Peak Hours -->
-              <div class="col-lg-6">
-                <div class="chart-card">
-                  <div class="chart-header">
-                    <h3 class="chart-title">Peak Hours</h3>
-                  </div>
-                  <div class="chart-body">
-                    <div class="timeline-chart">
-                      <div v-for="hour in peakHours" :key="hour.time" class="timeline-row">
-                        <span class="timeline-time">{{ hour.time }}</span>
-                        <div class="timeline-bar-wrapper">
-                          <div class="timeline-bar" :style="{ width: `${hour.percent}%` }"></div>
-                        </div>
-                        <span class="timeline-count">{{ hour.count }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Table Utilization -->
-          <section class="charts-section">
-            <div class="row g-4">
-              <div class="col-12">
-                <div class="chart-card">
-                  <div class="chart-header">
-                    <h3 class="chart-title">Table Utilization</h3>
-                  </div>
-                  <div class="chart-body">
-                    <div class="table-grid">
-                      <div
-                        v-for="table in tableUtilization"
-                        :key="table.number"
-                        class="table-card"
-                        :class="{ occupied: table.reserved > 0 }"
-                      >
-                        <div class="table-icon">
-                          <i class="bi bi-inboxes"></i>
-                        </div>
-                        <div class="table-info">
-                          <span class="table-number">Table {{ table.number }}</span>
-                          <span class="table-capacity">{{ table.capacity }} seats</span>
-                        </div>
-                        <div class="table-status">
-                          <span class="status-count">{{ table.reserved }}</span>
-                          <span class="status-label">reserved</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Recent Activity -->
-          <section class="activity-section">
-            <div class="row g-4">
-              <div class="col-lg-6">
-                <div class="chart-card">
-                  <div class="chart-header">
-                    <h3 class="chart-title">Recent Reservations</h3>
-                  </div>
-                  <div class="chart-body">
-                    <div class="activity-list">
-                      <div
-                        v-for="reservation in recentReservations"
-                        :key="reservation.id"
-                        class="activity-item"
-                      >
-                        <div class="activity-avatar">
-                          <i class="bi bi-person"></i>
-                        </div>
-                        <div class="activity-details">
-                          <span class="activity-name">{{ reservation.name }}</span>
-                          <span class="activity-meta">
-                            {{ reservation.guests }} guests · {{ formatDate(reservation.date) }}
-                          </span>
-                        </div>
-                        <div class="activity-status" :class="reservation.status">
-                          {{ reservation.status }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-lg-6">
-                <div class="chart-card">
-                  <div class="chart-header">
-                    <h3 class="chart-title">Quick Insights</h3>
-                  </div>
-                  <div class="chart-body">
-                    <div class="insights-list">
-                      <div class="insight-item">
-                        <div class="insight-icon success">
-                          <i class="bi bi-calendar-check"></i>
-                        </div>
-                        <div class="insight-content">
-                          <span class="insight-label">Average Daily Reservations</span>
-                          <span class="insight-value">{{ averageDailyReservations }}</span>
-                        </div>
-                      </div>
-                      <div class="insight-item">
-                        <div class="insight-icon warning">
-                          <i class="bi bi-people"></i>
-                        </div>
-                        <div class="insight-content">
-                          <span class="insight-label">Average Party Size</span>
-                          <span class="insight-value">{{ averagePartySize }} guests</span>
-                        </div>
-                      </div>
-                      <div class="insight-item">
-                        <div class="insight-icon info">
-                          <i class="bi bi-clock-history"></i>
-                        </div>
-                        <div class="insight-content">
-                          <span class="insight-label">Most Popular Time</span>
-                          <span class="insight-value">{{ mostPopularTime }}</span>
-                        </div>
-                      </div>
-                      <div class="insight-item">
-                        <div class="insight-icon gold">
-                          <i class="bi bi-star"></i>
-                        </div>
-                        <div class="insight-content">
-                          <span class="insight-label">Confirmation Rate</span>
-                          <span class="insight-value">{{ confirmationRate }}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
       </main>
     </div>
@@ -499,11 +253,11 @@ const accessDenied = ref(false)
 // Search and filter state
 const searchQuery = ref('')
 const statusFilter = ref('')
-const dateFilter = ref('')
+const verifiedFilter = ref('')
 const tableFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(20)
-const sortField = ref('date')
+const sortField = ref('name')
 const sortDirection = ref('desc')
 
 const tableOptions = computed(() => store.tableNames || [])
@@ -543,11 +297,6 @@ const tableResults = computed(() => {
     })
   }
 
-  // Date filter (client-side exact match)
-  if (dateFilter.value) {
-    results = results.filter((r) => r.date === dateFilter.value)
-  }
-
   // Table filter (client-side exact match)
   if (tableFilter.value) {
     const tableQuery = tableFilter.value.toString().toLowerCase()
@@ -558,11 +307,6 @@ const tableResults = computed(() => {
   results = [...results].sort((a, b) => {
     let aVal = a[sortField.value]
     let bVal = b[sortField.value]
-
-    if (sortField.value === 'date' || sortField.value === 'time') {
-      aVal = new Date(`2000-01-01 ${aVal}`).getTime()
-      bVal = new Date(`2000-01-01 ${bVal}`).getTime()
-    }
 
     if (sortDirection.value === 'asc') {
       return aVal > bVal ? 1 : -1
@@ -589,6 +333,7 @@ const fetchTableData = async () => {
   params.set('page', currentPage.value.toString())
   params.set('limit', itemsPerPage.value.toString())
   if (statusFilter.value) params.set('status', statusFilter.value)
+  if (verifiedFilter.value !== '') params.set('verified', verifiedFilter.value)
   if (searchQuery.value) params.set('search', searchQuery.value)
   if (tableFilter.value) params.set('table', tableFilter.value)
 
@@ -619,7 +364,7 @@ const fetchTableData = async () => {
 }
 
 // Reset page and refetch when filters change
-watch([searchQuery, statusFilter, tableFilter], () => {
+watch([searchQuery, statusFilter, tableFilter, verifiedFilter], () => {
   currentPage.value = 1
   fetchTableData()
 })
@@ -654,7 +399,7 @@ const sortBy = (field) => {
 const clearFilters = () => {
   searchQuery.value = ''
   statusFilter.value = ''
-  dateFilter.value = ''
+  verifiedFilter.value = ''
   tableFilter.value = ''
   currentPage.value = 1
   fetchTableData()
@@ -675,29 +420,29 @@ onMounted(async () => {
 })
 
 // Filter reservations based on time filter
-const filteredReservations = computed(() => {
-  const now = new Date()
-  const reservations = store.reservations
+// const filteredReservations = computed(() => {
+//   const now = new Date()
+//   const reservations = store.reservations
 
-  if (timeFilter.value === 'all') return reservations
+//   if (timeFilter.value === 'all') return reservations
 
-  return reservations.filter((r) => {
-    const reservationDate = new Date(r.date)
-    if (timeFilter.value === 'today') {
-      return reservationDate.toDateString() === now.toDateString()
-    } else if (timeFilter.value === 'week') {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-      return reservationDate >= weekAgo
-    } else if (timeFilter.value === 'month') {
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-      return reservationDate >= monthAgo
-    }
-    return true
-  })
-})
+//   return reservations.filter((r) => {
+//     const reservationDate = new Date(r.date)
+//     if (timeFilter.value === 'today') {
+//       return reservationDate.toDateString() === now.toDateString()
+//     } else if (timeFilter.value === 'week') {
+//       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+//       return reservationDate >= weekAgo
+//     } else if (timeFilter.value === 'month') {
+//       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+//       return reservationDate >= monthAgo
+//     }
+//     return true
+//   })
+// })
 
 // Reset page on client-only filters
-watch([dateFilter, timeFilter], () => {
+watch([timeFilter], () => {
   currentPage.value = 1
 })
 
@@ -786,200 +531,180 @@ const summaryStats = computed(() => {
 })
 
 // Status Segments for Donut Chart (backend)
-const statusSegments = computed(() => {
-  const total =
-    analyticsData.value.statusCounts.reduce((sum, s) => sum + Number(s.count || 0), 0) || 1
-  const circumference = 2 * Math.PI * 40
+// const statusSegments = computed(() => {
+//   const total =
+//     analyticsData.value.statusCounts.reduce((sum, s) => sum + Number(s.count || 0), 0) || 1
+//   const circumference = 2 * Math.PI * 40
 
-  const colorMap = {
-    confirmed: '#28a745',
-    pending: '#ffc107',
-    cancelled: '#dc3545',
-  }
+//   const colorMap = {
+//     confirmed: '#28a745',
+//     pending: '#ffc107',
+//     cancelled: '#dc3545',
+//   }
 
-  let offset = 0
-  return analyticsData.value.statusCounts.map((s) => {
-    const pct = Number(s.count || 0) / total || 0
-    const segment = {
-      label: s.status || 'unknown',
-      count: Number(s.count || 0),
-      percent: Math.round(pct * 100),
-      color: colorMap[s.status] || '#6c757d',
-      dashArray: `${pct * circumference} ${circumference}`,
-      dashOffset: -offset,
-    }
-    offset += pct * circumference
-    return segment
-  })
-})
+//   let offset = 0
+//   return analyticsData.value.statusCounts.map((s) => {
+//     const pct = Number(s.count || 0) / total || 0
+//     const segment = {
+//       label: s.status || 'unknown',
+//       count: Number(s.count || 0),
+//       percent: Math.round(pct * 100),
+//       color: colorMap[s.status] || '#6c757d',
+//       dashArray: `${pct * circumference} ${circumference}`,
+//       dashOffset: -offset,
+//     }
+//     offset += pct * circumference
+//     return segment
+//   })
+// })
 
 // Helper function to format date as YYYY-MM-DD in local timezone
-const formatDateISO = (date) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+// const formatDateISO = (date) => {
+//   const year = date.getFullYear()
+//   const month = String(date.getMonth() + 1).padStart(2, '0')
+//   const day = String(date.getDate()).padStart(2, '0')
+//   return `${year}-${month}-${day}`
+// }
 
 // Reservations by Date (last 7 days)
-const reservationsByDate = computed(() => {
-  const now = new Date()
+// const reservationsByDate = computed(() => {
+//   const now = new Date()
 
-  // Build lookup with multiple format possibilities
-  const lookup = {}
-  analyticsData.value.dailyCounts.forEach((d) => {
-    if (d.day) {
-      // Try different formats: raw, trimmed, etc.
-      lookup[String(d.day).trim()] = Number(d.count || 0)
-      // Also try with leading/trailing spaces removed
-      lookup[String(d.day)] = Number(d.count || 0)
-    }
-  })
+//   // Build lookup with multiple format possibilities
+//   const lookup = {}
+//   analyticsData.value.dailyCounts.forEach((d) => {
+//     if (d.day) {
+//       // Try different formats: raw, trimmed, etc.
+//       lookup[String(d.day).trim()] = Number(d.count || 0)
+//       // Also try with leading/trailing spaces removed
+//       lookup[String(d.day)] = Number(d.count || 0)
+//     }
+//   })
 
-  const days = []
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now)
-    d.setDate(now.getDate() - i)
-    const iso = formatDateISO(d)
-    days.push({
-      date: iso,
-      label: d.toLocaleDateString('en-US', { weekday: 'short' }),
-      count: lookup[iso] || 0,
-      percent: 0,
-    })
-  }
+//   const days = []
+//   for (let i = 6; i >= 0; i--) {
+//     const d = new Date(now)
+//     d.setDate(now.getDate() - i)
+//     const iso = formatDateISO(d)
+//     days.push({
+//       date: iso,
+//       label: d.toLocaleDateString('en-US', { weekday: 'short' }),
+//       count: lookup[iso] || 0,
+//       percent: 0,
+//     })
+//   }
 
-  const maxCount = Math.max(...days.map((d) => d.count), 1)
-  days.forEach((d) => {
-    d.percent = (d.count / maxCount) * 100
-  })
+//   const maxCount = Math.max(...days.map((d) => d.count), 1)
+//   days.forEach((d) => {
+//     d.percent = (d.count / maxCount) * 100
+//   })
 
-  return days
-})
+//   return days
+// })
 
 // Guests Distribution (backend)
-const guestsDistribution = computed(() => {
-  const distribution = analyticsData.value.guestDistribution.map((g) => ({
-    range: g.range,
-    count: Number(g.count || 0),
-    percent: 0,
-  }))
+// const guestsDistribution = computed(() => {
+//   const distribution = analyticsData.value.guestDistribution.map((g) => ({
+//     range: g.range,
+//     count: Number(g.count || 0),
+//     percent: 0,
+//   }))
 
-  const maxCount = Math.max(...distribution.map((d) => d.count), 1)
-  distribution.forEach((d) => {
-    d.percent = (d.count / maxCount) * 100
-  })
+//   const maxCount = Math.max(...distribution.map((d) => d.count), 1)
+//   distribution.forEach((d) => {
+//     d.percent = (d.count / maxCount) * 100
+//   })
 
-  return distribution
-})
+//   return distribution
+// })
 
-// Peak Hours (backend)
-const peakHours = computed(() => {
-  const hours = analyticsData.value.peakHours.map((h) => {
-    const hourInt = Number(h.hour || 0)
-    const displayHour = hourInt % 12 || 12
-    const label = `${displayHour}:00 ${hourInt >= 12 ? 'PM' : 'AM'}`
-    return {
-      time: label,
-      count: Number(h.count || 0),
-      percent: 0,
-    }
-  })
+// // Peak Hours (backend)
+// const peakHours = computed(() => {
+//   const hours = analyticsData.value.peakHours.map((h) => {
+//     const hourInt = Number(h.hour || 0)
+//     const displayHour = hourInt % 12 || 12
+//     const label = `${displayHour}:00 ${hourInt >= 12 ? 'PM' : 'AM'}`
+//     return {
+//       time: label,
+//       count: Number(h.count || 0),
+//       percent: 0,
+//     }
+//   })
 
-  const maxCount = Math.max(...hours.map((h) => h.count), 1)
-  hours.forEach((h) => {
-    h.percent = (h.count / maxCount) * 100
-  })
+//   const maxCount = Math.max(...hours.map((h) => h.count), 1)
+//   hours.forEach((h) => {
+//     h.percent = (h.count / maxCount) * 100
+//   })
 
-  return hours
-})
+//   return hours
+// })
 
-// Table Utilization
-const tableUtilization = computed(() => {
-  const data = filteredReservations.value
-  const tables = []
+// // Table Utilization
+// const tableUtilization = computed(() => {
+//   const data = filteredReservations.value
+//   const tables = []
 
-  for (let i = 1; i <= 10; i++) {
-    const capacity = i <= 4 ? 2 : i <= 7 ? 4 : 6
-    const reserved = data.filter((r) => r.table === i).length
-    tables.push({
-      number: i,
-      capacity,
-      reserved,
-    })
-  }
+//   for (let i = 1; i <= 10; i++) {
+//     const capacity = i <= 4 ? 2 : i <= 7 ? 4 : 6
+//     const reserved = data.filter((r) => r.table === i).length
+//     tables.push({
+//       number: i,
+//       capacity,
+//       reserved,
+//     })
+//   }
 
-  return tables
-})
+//   return tables
+// })
 
-// Recent Reservations
-const recentReservations = computed(() => {
-  return [...filteredReservations.value]
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 5)
-})
+// // Recent Reservations
+// const recentReservations = computed(() => {
+//   return [...filteredReservations.value]
+//     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+//     .slice(0, 5)
+// })
 
-// Quick Insights
-const averageDailyReservations = computed(() => {
-  const data = filteredReservations.value
-  if (data.length === 0) return 0
-  return (data.length / 7).toFixed(1)
-})
+// // Quick Insights
+// const averageDailyReservations = computed(() => {
+//   const data = filteredReservations.value
+//   if (data.length === 0) return 0
+//   return (data.length / 7).toFixed(1)
+// })
 
-const averagePartySize = computed(() => {
-  const data = filteredReservations.value
-  if (data.length === 0) return 0
-  const total = data.reduce((sum, r) => sum + r.guests, 0)
-  return (total / data.length).toFixed(1)
-})
+// const averagePartySize = computed(() => {
+//   const data = filteredReservations.value
+//   if (data.length === 0) return 0
+//   const total = data.reduce((sum, r) => sum + r.guests, 0)
+//   return (total / data.length).toFixed(1)
+// })
 
-const mostPopularTime = computed(() => {
-  const data = filteredReservations.value
-  if (data.length === 0) return 'N/A'
+// const mostPopularTime = computed(() => {
+//   const data = filteredReservations.value
+//   if (data.length === 0) return 'N/A'
 
-  const timeCounts = {}
-  data.forEach((r) => {
-    timeCounts[r.time] = (timeCounts[r.time] || 0) + 1
-  })
+//   const timeCounts = {}
+//   data.forEach((r) => {
+//     timeCounts[r.time] = (timeCounts[r.time] || 0) + 1
+//   })
 
-  const popular = Object.entries(timeCounts).sort((a, b) => b[1] - a[1])[0]
-  if (!popular) return 'N/A'
+//   const popular = Object.entries(timeCounts).sort((a, b) => b[1] - a[1])[0]
+//   if (!popular) return 'N/A'
 
-  const [hour] = popular[0].split(':')
-  const h = parseInt(hour)
-  return `${h > 12 ? h - 12 : h}:00 ${h >= 12 ? 'PM' : 'AM'}`
-})
+//   const [hour] = popular[0].split(':')
+//   const h = parseInt(hour)
+//   return `${h > 12 ? h - 12 : h}:00 ${h >= 12 ? 'PM' : 'AM'}`
+// })
 
-const confirmationRate = computed(() => {
-  const data = filteredReservations.value
-  if (data.length === 0) return 0
-  const confirmed = data.filter((r) => r.status === 'confirmed').length
-  return Math.round((confirmed / data.length) * 100)
-})
-
-// Format date
-const formatDate = (dateStr) => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-// Format time
-const formatTime = (timeStr) => {
-  if (!timeStr) return '-'
-  const [hours, minutes] = timeStr.split(':')
-  const hour = parseInt(hours)
-  const ampm = hour >= 12 ? 'PM' : 'AM'
-  const displayHour = hour % 12 || 12
-  return `${displayHour}:${minutes} ${ampm}`
-}
+// const confirmationRate = computed(() => {
+//   const data = filteredReservations.value
+//   if (data.length === 0) return 0
+//   const confirmed = data.filter((r) => r.status === 'confirmed').length
+//   return Math.round((confirmed / data.length) * 100)
+// })
 </script>
 
 <style scoped>
 .analytics-page {
-  min-height: 100vh;
   background: var(--bg);
   color: var(--primary-dark);
   padding-top: 90px; /* offset fixed Navbar height */

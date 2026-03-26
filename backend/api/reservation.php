@@ -418,6 +418,7 @@ function getReservations()
 
     // Filters and pagination
     $status = $_GET['status'] ?? null;
+    $verified = $_GET['verified'] ?? null;
     $search = isset($_GET['search']) ? trim($_GET['search']) : null;
     $table = isset($_GET['table']) ? trim($_GET['table']) : null;
     $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
@@ -432,6 +433,11 @@ function getReservations()
         if ($status && in_array($status, ['pending', 'confirmed', 'cancelled'])) {
             $where[] = 'status = ?';
             $params[] = $status;
+        }
+
+        if ($verified !== null && $verified !== '') {
+            $where[] = 'verified = ?';
+            $params[] = (int) $verified;
         }
 
         if ($search !== null && $search !== '') {
