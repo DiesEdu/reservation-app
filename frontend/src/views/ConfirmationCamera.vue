@@ -57,34 +57,8 @@
               <p>Please scan the QR code from your reservation confirmation</p>
             </div>
 
-            <!-- Manual Entry Option -->
-            <div class="manual-entry">
-              <form @submit.prevent="verifyManualCode" class="manual-form">
-                <div class="input-group">
-                  <i class="bi bi-hash"></i>
-                  <input
-                    ref="manualCodeInput"
-                    v-model="manualCode"
-                    type="text"
-                    placeholder="Enter reservation code manually"
-                    class="form-control"
-                  />
-                </div>
-                <button type="submit" class="btn-verify" :disabled="!manualCode || loading">
-                  <span v-if="!loading">Verify Code</span>
-                  <span v-else>
-                    <i class="bi bi-hourglass-split spinner"></i>
-                    Verifying...
-                  </span>
-                </button>
-              </form>
-            </div>
-
             <!-- QR Scanner -->
             <div class="scanner-container">
-              <div class="divider">
-                <span>OR</span>
-              </div>
               <div v-show="!scannerActive" class="scanner-placeholder">
                 <button @click="startScanner" class="btn-start-scan">
                   <i class="bi bi-camera"></i>
@@ -185,6 +159,9 @@ onMounted(async () => {
   await authStore.initializeAuth()
   if (!canAccess.value) {
     accessDenied.value = true
+  } else {
+    // Auto-start camera when page opens
+    await startScanner()
   }
 })
 
@@ -201,37 +178,6 @@ const verifiedAt = ref(null)
 const countdown = ref(0)
 let countdownTimer = null
 let html5QrCode = null
-
-// Computed
-// const statusClass = computed(() => {
-//   if (!reservationData.value) return ''
-//   const status = reservationData.value.status
-//   return {
-//     confirmed: 'status-confirmed',
-//     pending: 'status-pending',
-//     cancelled: 'status-cancelled',
-//   }[status]
-// })
-
-// const statusIcon = computed(() => {
-//   if (!reservationData.value) return ''
-//   const status = reservationData.value.status
-//   return {
-//     confirmed: 'bi bi-check-circle-fill',
-//     pending: 'bi bi-hourglass-split',
-//     cancelled: 'bi bi-x-circle-fill',
-//   }[status]
-// })
-
-// const statusText = computed(() => {
-//   if (!reservationData.value) return ''
-//   const status = reservationData.value.status
-//   return {
-//     confirmed: 'Confirmed',
-//     pending: 'Pending Confirmation',
-//     cancelled: 'Cancelled',
-//   }[status]
-// })
 
 // Methods
 const startScanner = async () => {
@@ -271,18 +217,36 @@ const stopScanner = async () => {
 
 const onScanSuccess = (decodedText) => {
   console.log('QR Code scanned:', decodedText)
+  // Play beep sound on successful scan
+  playBeep()
   stopScanner()
   verifyReservation(decodedText)
 }
 
-const onScanFailure = () => {
-  // Ignore scan failures (they happen continuously while scanning)
+const playBeep = () => {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+
+    oscillator.frequency.value = 1000 // 1000 Hz beep frequency
+    oscillator.type = 'sine'
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2)
+
+    oscillator.start(audioContext.currentTime)
+    oscillator.stop(audioContext.currentTime + 0.5)
+  } catch (err) {
+    console.error('Error playing beep sound:', err)
+  }
 }
 
-const verifyManualCode = () => {
-  if (manualCode.value.trim()) {
-    verifyReservation(manualCode.value.trim())
-  }
+const onScanFailure = () => {
+  // Ignore scan failures (they happen continuously while scanning)
 }
 
 const verifyReservation = async (code) => {
@@ -352,7 +316,7 @@ const verifyReservation = async (code) => {
   }
 }
 
-const resetScanner = () => {
+const resetScanner = async () => {
   // Clear countdown timer if active
   if (countdownTimer) {
     clearInterval(countdownTimer)
@@ -372,6 +336,9 @@ const resetScanner = () => {
       manualCodeInput.value.focus()
     }
   })
+
+  // Auto-restart camera after reset
+  await startScanner()
 }
 
 // const formatDate = (dateString) => {
@@ -396,22 +363,6 @@ const formatVerifiedDate = (dateString) => {
     minute: '2-digit',
   })
 }
-
-// const copyCode = async () => {
-//   try {
-//     await navigator.clipboard.writeText(reservationCode.value)
-//     copied.value = true
-//     setTimeout(() => {
-//       copied.value = false
-//     }, 2000)
-//   } catch (err) {
-//     console.error('Failed to copy:', err)
-//   }
-// }
-
-// const printConfirmation = () => {
-//   window.print()
-// }
 
 const particleStyle = () => ({
   left: `${Math.random() * 100}%`,
@@ -644,7 +595,7 @@ onUnmounted(() => {
 
 .countdown-timer {
   position: fixed;
-  top: 88px; /* align below fixed Navbar */
+  top: 0;
   left: 0;
   right: 0;
   background: linear-gradient(135deg, rgba(212, 175, 55, 0.7) 0%, rgba(170, 138, 46, 0.7) 100%);

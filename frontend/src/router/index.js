@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '../views/HomePage.vue'
-import CustomerConfirmation from '../views/CustomerConfirmation.vue'
+import ConfirmationCamera from '../views/ConfirmationCamera.vue'
+import ConfirmationScanner from '../views/ConfirmationScanner.vue'
 import AnalyticsPage from '../views/AnalyticsPage.vue'
 import LoginPage from '../views/LoginPage.vue'
 import RegisterPage from '../views/RegisterPage.vue'
@@ -19,11 +20,19 @@ const router = createRouter({
       },
     },
     {
-      path: '/confirm',
+      path: '/confirm-scanner',
       name: 'customer-confirmation',
-      component: CustomerConfirmation,
+      component: ConfirmationScanner,
       meta: {
-        title: 'Confirm Reservation - Luxe Reserve',
+        title: 'Confirm Reservation',
+      },
+    },
+    {
+      path: '/confirm-camera',
+      name: 'confirmation-by-camera',
+      component: ConfirmationCamera,
+      meta: {
+        title: 'Confirmation by Camera',
       },
     },
     {

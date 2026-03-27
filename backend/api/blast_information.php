@@ -49,6 +49,14 @@ if ($path === '/blast-info-email/ticket' && $method === 'POST') {
         return;
     }
     createBlastInfo();
+} elseif ($path === '/blast-info-wa/ticket' && $method === 'POST') {
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    if (strpos($contentType, 'application/json') === false) {
+        http_response_code(415);
+        echo json_encode(['success' => false, 'error' => 'Content-Type must be application/json']);
+        return;
+    }
+    createBlastInfoWhatsapp();
 } else {
     // Debug: Show what path was actually received
     http_response_code(404);
@@ -154,10 +162,183 @@ function sendInformationEmail($email, $username, $reservationId)
 
     // If we have a ticket image, attach it
     if ($ticketImage) {
-        return sendEmailWithAttachment($email, $subject, $message, $headers, $ticketImage, "ticket-{$reservationId}.png");
+        return sendEmailWithAttachment($email, $subject, $message, $headers, $ticketImage, "ticket-{$reservationId}.jpg");
     }
 
     return mail($email, $subject, $message, $headers);
+}
+
+/**
+ * Blast WhatsApp messages for reservations not yet messaged
+ */
+function createBlastInfoWhatsapp()
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT id, name, phone
+            FROM reservations
+            WHERE (send_whatsapp IS NULL) 
+              AND (phone IS NOT NULL AND phone <> '')
+        ");
+        $stmt->execute();
+        $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!$reservations) {
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'message' => 'No pending reservations to WhatsApp',
+                'sent' => 0,
+                'failed' => 0
+            ]);
+            return;
+        }
+
+        $updateStmt = $pdo->prepare("UPDATE reservations SET send_whatsapp = NOW() WHERE id = ?");
+
+        $sentCount = 0;
+        $failed = [];
+
+        foreach ($reservations as $reservation) {
+            $phone = normalizePhoneToE164($reservation['phone']);
+            if (!$phone) {
+                $failed[] = $reservation['id'];
+                continue;
+            }
+
+            $sent = sendInformationWhatsapp($phone, $reservation['name'], $reservation['id']);
+
+            if ($sent) {
+                $updateStmt->execute([$reservation['id']]);
+                $sentCount++;
+            } else {
+                $failed[] = $reservation['id'];
+            }
+        }
+
+        http_response_code(200);
+        echo json_encode([
+            'success' => true,
+            'message' => 'Blast WhatsApp process completed',
+            'sent' => $sentCount,
+            'failed' => $failed
+        ]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'An error occurred while processing your request'
+        ]);
+        error_log('createBlastInfoWhatsapp error: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Normalize Indonesian local numbers to E.164 with +62 prefix when they start with 0.
+ * Leaves already-E.164 numbers untouched. Returns null if empty after cleanup.
+ */
+function normalizePhoneToE164($phone)
+{
+    $phone = trim($phone ?? '');
+    if ($phone === '') {
+        return null;
+    }
+
+    // Remove spaces, dashes, parentheses
+    $clean = preg_replace('/[\\s\\-()]/', '', $phone);
+
+    if (strpos($clean, '+') === 0) {
+        return $clean; // already has country code
+    }
+
+    if (strpos($clean, '0') === 0) {
+        return '+62' . substr($clean, 1);
+    }
+
+    return $clean;
+}
+
+/**
+ * Send WhatsApp message using HitlChat API
+ * Expects env var HITLCHAT_TOKEN (fallback WA_ACCESS_TOKEN) to be set.
+ *
+ * @param string $phoneNumber E.164 formatted number (e.g., +628123456789)
+ * @param string $username     Recipient name
+ * @param int    $reservationId Reservation identifier (for logging)
+ * @return bool Success flag
+ */
+function sendInformationWhatsapp($phoneNumber, $username, $reservationId)
+{
+    $accessToken = getenv('HITLCHAT_TOKEN') ?: getenv('WA_ACCESS_TOKEN');
+
+    if (empty($accessToken)) {
+        error_log('WhatsApp config missing: set HITLCHAT_TOKEN or WA_ACCESS_TOKEN');
+        return false;
+    }
+
+    // Message text mirrors the email content
+    $textPayload = [
+        'type' => 'text',
+        'recipientNumber' => $phoneNumber,
+        'messageText' => "Hello {$username},\n\nThank you for your confirmation! Please find your ticket attached.\n\nBest regards,\nThe Resonanz Team"
+    ];
+
+    $textSent = sendWhatsAppPayload($accessToken, $textPayload);
+
+    // Attempt to send ticket image if available
+    $ticketImage = generateTicketImage($reservationId);
+    $imageSent = true;
+
+    if ($ticketImage) {
+        $imagePayload = [
+            'type' => 'image',
+            'recipientNumber' => $phoneNumber,
+            'fileName' => "ticket-{$reservationId}.jpg",
+            'mediaBase64' => base64_encode($ticketImage),
+            'caption' => "Ticket for {$username} (ID: {$reservationId})"
+        ];
+        $imageSent = sendWhatsAppPayload($accessToken, $imagePayload);
+    }
+
+    return $textSent && $imageSent;
+}
+
+/**
+ * Low-level helper to send a message payload via HitlChat API
+ */
+function sendWhatsAppPayload($accessToken, $payload)
+{
+    $url = "https://api-portal.hitlchat.io/api/v1/public/messages/send";
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        "Authorization: Bearer {$accessToken}"
+    ]);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+
+    $response = curl_exec($ch);
+
+    if (curl_errno($ch)) {
+        error_log('WhatsApp cURL error: ' . curl_error($ch));
+        $ch = null; // release handle (curl_close is deprecated in PHP 8.5)
+        return false;
+    }
+
+    $statusCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $ch = null; // release handle
+
+    if ($statusCode >= 200 && $statusCode < 300) {
+        return true;
+    }
+
+    error_log('WhatsApp send failed with status ' . $statusCode . ' response: ' . $response);
+    return false;
 }
 
 /**
@@ -298,9 +479,8 @@ function generateTicketImage($reservationId)
 
         // Capture output to string instead of direct output
         ob_start();
-        imagepng($image);
+        imagejpeg($image, null, 85); // Use JPEG with 85% quality to reduce file size
         $imageData = ob_get_clean();
-        imagedestroy($image);
 
         return $imageData;
 
@@ -329,7 +509,7 @@ function sendEmailWithAttachment($to, $subject, $message, $headers, $attachmentD
     $body .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
     $body .= $message . "\r\n";
     $body .= "--{$boundary}\r\n";
-    $body .= "Content-Type: image/png; name=\"{$filename}\"\r\n";
+    $body .= "Content-Type: image/jpeg; name=\"{$filename}\"\r\n";
     $body .= "Content-Transfer-Encoding: base64\r\n";
     $body .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n\r\n";
     $body .= chunk_split(base64_encode($attachmentData)) . "\r\n";
@@ -495,9 +675,9 @@ function renderReservationTicket($id)
             drawCenteredGdText($image, $fontPathCustom, 10, $tableY, strtoupper($table), $textColor);
         }
 
-        header('Content-Type: image/png');
-        header('Content-Disposition: inline; filename="ticket-' . $id . '.png"'); // Fixed quotes
-        imagepng($image);
+        header('Content-Type: image/jpeg');
+        header('Content-Disposition: inline; filename="ticket-' . $id . '.jpg"'); // Fixed quotes
+        imagejpeg($image, null, 85);
         exit();
 
     } catch (PDOException $e) {
