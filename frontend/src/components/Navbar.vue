@@ -45,8 +45,11 @@
             <!-- If authenticated, show user name and confirmation button -->
             <template v-else>
               <div class="d-flex align-items-center gap-2">
-                <router-link to="/confirm" class="btn btn-gold btn-sm">
-                  <i class="bi bi-check2-circle me-2"></i>Confirm
+                <router-link to="/confirm-scanner" class="btn btn-gold btn-sm">
+                  <i class="bi bi-check2-circle me-2"></i>QR Scanner
+                </router-link>
+                <router-link to="/confirm-camera" class="btn btn-gold btn-sm">
+                  <i class="bi bi-check2-circle me-2"></i>Camera
                 </router-link>
                 <div class="dropdown">
                   <button

@@ -1034,7 +1034,7 @@ onUnmounted(() => {
 }
 .table-value {
   font-family: 'Playfair Display', serif;
-  font-size: 8rem;
+  font-size: 15rem;
   font-weight: 800;
   color: var(--accent);
   line-height: 1;
