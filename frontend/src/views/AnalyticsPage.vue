@@ -87,12 +87,6 @@
                     />
                   </div>
                   <div class="filter-group">
-                    <select v-model="statusFilter" class="filter-select">
-                      <option value="">All Status</option>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
                     <select v-model="verifiedFilter" class="filter-select">
                       <option value="">All Verified</option>
                       <option value="1">Verified</option>
@@ -150,10 +144,6 @@
                         </th>
                         <th>Contact</th>
                         <th>Table</th>
-                        <th @click="sortBy('status')" class="sortable">
-                          Status
-                          <i v-if="sortField === 'status'" :class="sortIcon"></i>
-                        </th>
                         <th>Verified</th>
                         <th>Actions</th>
                       </tr>
@@ -178,11 +168,6 @@
                           </div>
                         </td>
                         <td>{{ reservation.table }}</td>
-                        <td>
-                          <span class="status-badge" :class="reservation.status">
-                            {{ reservation.status }}
-                          </span>
-                        </td>
                         <td>
                           <span class="verified-badge" :class="{ verified: reservation.verified }">
                             <i
@@ -720,7 +705,7 @@ const fetchSummary = async () => {
       summaryStatsData.value = {
         totalReservations: data.data.totalReservations ?? 0,
         confirmed: data.data.confirmed ?? 0,
-        pending: data.data.pending ?? 0,
+        verified: data.data.verified ?? 0,
         totalGuests: data.data.totalGuests ?? 0,
       }
     }
@@ -749,31 +734,17 @@ const fetchAnalytics = async () => {
 const summaryStats = computed(() => {
   return [
     {
-      label: 'Total Reservations',
-      value: summaryStatsData.value.totalReservations,
-      icon: 'bi bi-calendar-event',
+      label: 'Total Guests',
+      value: summaryStatsData.value.totalGuests,
+      icon: 'bi bi-people',
       color: 'gold',
       trend: null,
     },
     {
-      label: 'Confirmed',
-      value: summaryStatsData.value.confirmed,
-      icon: 'bi bi-check-circle',
-      color: 'success',
-      trend: null,
-    },
-    {
-      label: 'Pending',
-      value: summaryStatsData.value.pending,
+      label: 'Verified',
+      value: summaryStatsData.value.verified,
       icon: 'bi bi-hourglass-split',
-      color: 'warning',
-      trend: null,
-    },
-    {
-      label: 'Total Guests',
-      value: summaryStatsData.value.totalGuests,
-      icon: 'bi bi-people',
-      color: 'info',
+      color: 'success',
       trend: null,
     },
   ]
