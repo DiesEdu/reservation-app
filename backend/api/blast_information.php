@@ -32,7 +32,9 @@ $path = parse_url($requestUri, PHP_URL_PATH);
 // error_log("Request path: " . $path);
 
 // Remove /api prefix if present
-$path = str_replace('/api', '', $path);
+$path = preg_replace('#^/api/?#', '/', $path); // remove leading /api only
+$path = rtrim($path, '/'); // normalize trailing slash
+$path = $path === '' ? '/' : $path;
 
 // Debug: log after removing /api
 // error_log("Path after remove /api: " . $path);
@@ -57,6 +59,14 @@ if ($path === '/blast-info-email/ticket' && $method === 'POST') {
         return;
     }
     createBlastInfoWhatsapp();
+} elseif ($path === '/blast-info-generate/ticket' && $method === 'POST') {
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    if (strpos($contentType, 'application/json') === false) {
+        http_response_code(415);
+        echo json_encode(['success' => false, 'error' => 'Content-Type must be application/json']);
+        return;
+    }
+    createBlastInfoGenerateTicket();
 } else {
     // Debug: Show what path was actually received
     http_response_code(404);
@@ -69,6 +79,106 @@ if ($path === '/blast-info-email/ticket' && $method === 'POST') {
             'expected_pattern' => '/blast-info-email/ticket'
         ]
     ]);
+}
+
+/**
+ * Generate ticket PDFs for reservations that don't have one yet.
+ * Reuses the local ticket generator (equivalent to GET /reservations/{id}/ticket),
+ * converts the image to PDF, saves it under backend/upload/pdf, and updates
+ * reservations.generate_ticket with the relative file path.
+ */
+function createBlastInfoGenerateTicket()
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    // Ensure output directory exists
+    $basePath = realpath(__DIR__ . '/..') ?: __DIR__ . '/..';
+    $outputDir = $basePath . '/upload/pdf';
+    if (!is_dir($outputDir)) {
+        if (!mkdir($outputDir, 0775, true) && !is_dir($outputDir)) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to prepare PDF output directory'
+            ]);
+            return;
+        }
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT id, name, table_preference
+            FROM reservations
+            WHERE generate_ticket IS NULL
+        ");
+        $stmt->execute();
+        $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!$reservations) {
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'message' => 'No pending reservations to generate tickets',
+                'generated' => 0,
+                'failed' => []
+            ]);
+            return;
+        }
+
+        $updateStmt = $pdo->prepare("UPDATE reservations SET generate_ticket = ? WHERE id = ?");
+
+        $generated = 0;
+        $failed = [];
+
+        foreach ($reservations as $reservation) {
+            $id = $reservation['id'];
+            $name = $reservation['name'];
+            $table = $reservation['table_preference'];
+
+            // Generate ticket image (same as calling /reservations/{id}/ticket)
+            $imageData = generateTicketImage($id);
+
+            if (!$imageData) {
+                $failed[] = $id;
+                continue;
+            }
+
+            $pdfPath = $outputDir . "/{$table}_{$name}.pdf";
+            $saved = saveImageAsPdf($imageData, $pdfPath);
+
+            if ($saved) {
+                // Store the timestamp when ticket was generated
+                $updateStmt->execute([date('Y-m-d H:i:s'), $id]);
+                $generated++;
+            } else {
+                $failed[] = $id;
+            }
+        }
+
+        http_response_code(200);
+        echo json_encode([
+            'success' => true,
+            'message' => 'Ticket PDF generation completed',
+            'generated' => $generated,
+            'failed' => $failed
+        ]);
+
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Database error: ' . $e->getMessage()
+        ]);
+        error_log('createBlastInfoGenerateTicket error: ' . $e->getMessage());
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Error: ' . $e->getMessage()
+        ]);
+        error_log('createBlastInfoGenerateTicket error: ' . $e->getMessage());
+    }
 }
 
 function createBlastInfo()
@@ -390,19 +500,22 @@ function generateTicketImage($reservationId)
         $name = $reservation['name'];
         $position = $reservation['position'];
         $company = $reservation['company'];
-        $table = 'Table: ' . $reservation['table_preference'];
+        $tableTitle = 'Table';
+        $table = $reservation['table_preference'];
         $qrData = $reservation['qr_code'];
 
         $nameSize = max(28, (int) ($width * 0.035));
         $positionSize = max(20, (int) ($width * 0.025));
         $companySize = max(20, (int) ($width * 0.035));
+        $tableTitleSize = max(20, (int) ($width * 0.025));
         $tableSize = max(22, (int) ($width * 0.025));
 
         // Vertical layout: name -> QR -> table
-        $nameY = (int) ($height * 0.71);
-        $companyY = (int) ($height * 0.76);
-        $positionY = (int) ($height * 0.79);
-        $qrGapBottom = (int) ($height * 0.03);
+        $nameY = (int) ($height * 0.72);
+        $companyY = (int) ($height * 0.77);
+        $positionY = (int) ($height * 0.80);
+        $qrGapBottom = (int) ($height * 0.01);
+        $tableTitleY = null;
         $tableY = null; // set after QR position is known
 
         if ($canUseTtf) {
@@ -415,10 +528,10 @@ function generateTicketImage($reservationId)
         }
 
         // Draw position if available
-        if ($canUseTtf && !empty($position)) {
+        if ($canUseTtf) {
             // drawLeftedTtfText($image, $positionSize, 100, $positionY, $fontPath, $position, $textColor, $shadowColor);
-            drawCenteredTtfText($image, $positionSize, $positionY, $fontPath, $position, $textColor, $shadowColor);
-        } elseif (!empty($position)) {
+            drawCenteredTtfText($image, $positionSize, $positionY, $fontPath, $position, $textColor, $shadowColor, true);
+        } else {
             // Fallback to built-in GD font if TTF support is missing
             // drawLeftedGdText($image, $fontPathCustom, 20, 100, $positionY, strtoupper($position), $textColor);
             drawCenteredGdText($image, $fontPathCustom, 10, $positionY, strtoupper($position), $textColor, true);
@@ -457,7 +570,8 @@ function generateTicketImage($reservationId)
                 );
 
                 // Set table Y relative to QR bottom
-                $tableY = $qrY + $qrHeight + $qrGapBottom;
+                $tableTitleY = $qrY + $qrHeight + $qrGapBottom;
+                $tableY = $qrY + $qrHeight + $qrGapBottom + (int) ($height * 0.07);
             } else {
                 error_log("Failed to generate QR code for reservation ID: " . $reservationId);
             }
@@ -471,10 +585,18 @@ function generateTicketImage($reservationId)
 
         if ($canUseTtf) {
             // drawLeftedTtfText($image, $tableSize, 700, $tableY, $fontPath, $table, $textColor, $shadowColor);
+            drawCenteredTtfText($image, $tableTitleSize, $tableTitleY, $fontPath, $table, $textColor, $shadowColor, true);
+        } else {
+            // drawLeftedGdText($image, $fontPathCustom, 15, 700, $tableY, strtoupper($table), $textColor);
+            drawCenteredGdText($image, $fontPathCustom, 15, $tableTitleY, strtoupper($tableTitle), $textColor, true);
+        }
+
+        if ($canUseTtf) {
+            // drawLeftedTtfText($image, $tableSize, 700, $tableY, $fontPath, $table, $textColor, $shadowColor);
             drawCenteredTtfText($image, $tableSize, $tableY, $fontPath, $table, $textColor, $shadowColor);
         } else {
             // drawLeftedGdText($image, $fontPathCustom, 15, 700, $tableY, strtoupper($table), $textColor);
-            drawCenteredGdText($image, $fontPathCustom, 10, $tableY, strtoupper($table), $textColor);
+            drawCenteredGdText($image, $fontPathCustom, 45, $tableY, strtoupper($table), $textColor);
         }
 
         // Capture output to string instead of direct output
@@ -588,19 +710,22 @@ function renderReservationTicket($id)
         $name = $reservation['name'];
         $position = $reservation['position'];
         $company = $reservation['company'];
-        $table = 'Table: ' . $reservation['table_preference'];
+        $tableTitle = 'Table';
+        $table = $reservation['table_preference'];
         $qrData = $reservation['qr_code'];
 
         $nameSize = max(28, (int) ($width * 0.035));
         $positionSize = max(20, (int) ($width * 0.025));
         $companySize = max(20, (int) ($width * 0.035));
+        $tableTitleSize = max(20, (int) ($width * 0.025));
         $tableSize = max(22, (int) ($width * 0.025));
 
         // Vertical layout: name -> QR -> table
-        $nameY = (int) ($height * 0.71);
-        $companyY = (int) ($height * 0.76);
-        $positionY = (int) ($height * 0.79);
-        $qrGapBottom = (int) ($height * 0.03);
+        $nameY = (int) ($height * 0.72);
+        $companyY = (int) ($height * 0.77);
+        $positionY = (int) ($height * 0.80);
+        $qrGapBottom = (int) ($height * 0.01);
+        $tableTitleY = null;
         $tableY = null; // set after QR position is known
 
         if ($canUseTtf) {
@@ -613,10 +738,10 @@ function renderReservationTicket($id)
         }
 
         // Draw position if available
-        if ($canUseTtf && !empty($position)) {
+        if ($canUseTtf) {
             // drawLeftedTtfText($image, $positionSize, 100, $positionY, $fontPath, $position, $textColor, $shadowColor);
-            drawCenteredTtfText($image, $positionSize, $positionY, $fontPath, $position, $textColor, $shadowColor);
-        } elseif (!empty($position)) {
+            drawCenteredTtfText($image, $positionSize, $positionY, $fontPath, $position, $textColor, $shadowColor, true);
+        } else {
             // Fallback to built-in GD font if TTF support is missing
             // drawLeftedGdText($image, $fontPathCustom, 20, 100, $positionY, strtoupper($position), $textColor);
             drawCenteredGdText($image, $fontPathCustom, 10, $positionY, strtoupper($position), $textColor, true);
@@ -655,7 +780,8 @@ function renderReservationTicket($id)
                 );
 
                 // Set table Y relative to QR bottom
-                $tableY = $qrY + $qrHeight + $qrGapBottom;
+                $tableTitleY = $qrY + $qrHeight + $qrGapBottom;
+                $tableY = $qrY + $qrHeight + $qrGapBottom + (int) ($height * 0.07);
             } else {
                 error_log("Failed to generate QR code for reservation ID: " . $id);
             }
@@ -669,10 +795,18 @@ function renderReservationTicket($id)
 
         if ($canUseTtf) {
             // drawLeftedTtfText($image, $tableSize, 700, $tableY, $fontPath, $table, $textColor, $shadowColor);
+            drawCenteredTtfText($image, $tableTitleSize, $tableTitleY, $fontPath, $table, $textColor, $shadowColor, true);
+        } else {
+            // drawLeftedGdText($image, $fontPathCustom, 15, 700, $tableY, strtoupper($table), $textColor);
+            drawCenteredGdText($image, $fontPathCustom, 15, $tableTitleY, strtoupper($tableTitle), $textColor, true);
+        }
+
+        if ($canUseTtf) {
+            // drawLeftedTtfText($image, $tableSize, 700, $tableY, $fontPath, $table, $textColor, $shadowColor);
             drawCenteredTtfText($image, $tableSize, $tableY, $fontPath, $table, $textColor, $shadowColor);
         } else {
             // drawLeftedGdText($image, $fontPathCustom, 15, 700, $tableY, strtoupper($table), $textColor);
-            drawCenteredGdText($image, $fontPathCustom, 10, $tableY, strtoupper($table), $textColor);
+            drawCenteredGdText($image, $fontPathCustom, 45, $tableY, strtoupper($table), $textColor);
         }
 
         header('Content-Type: image/jpeg');
@@ -805,6 +939,70 @@ function buildQrImage($data, $size = 300)
         error_log('QR Code generation error: ' . $e->getMessage());
         return null;
     }
+}
+
+/**
+ * Convert binary image data to a single-page PDF and save it.
+ * Uses a tiny manual PDF builder with a JPEG stream for broad compatibility.
+ */
+function saveImageAsPdf($imageData, $outputPath)
+{
+    // Create GD image to get dimensions and re-encode as JPEG (PDF friendly)
+    $img = imagecreatefromstring($imageData);
+    if (!$img) {
+        return false;
+    }
+
+    $width = imagesx($img);
+    $height = imagesy($img);
+
+    ob_start();
+    imagejpeg($img, null, 90);
+    $jpegData = ob_get_clean();
+
+    if (!$jpegData) {
+        return false;
+    }
+
+    $imgLen = strlen($jpegData);
+    $contentStream = "q\n{$width} 0 0 {$height} 0 0 cm\n/Im0 Do\nQ\n";
+    $contentLen = strlen($contentStream);
+
+    // Build a minimal PDF with one image XObject
+    $offsets = [];
+    $pdf = "%PDF-1.3\n";
+
+    // 1: Catalog
+    $offsets[1] = strlen($pdf);
+    $pdf .= "1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj\n";
+
+    // 2: Pages
+    $offsets[2] = strlen($pdf);
+    $pdf .= "2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj\n";
+
+    // 3: Page
+    $offsets[3] = strlen($pdf);
+    $pdf .= "3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {$width} {$height}] /Resources << /ProcSet [/PDF /ImageC] /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>endobj\n";
+
+    // 4: Image XObject
+    $offsets[4] = strlen($pdf);
+    $pdf .= "4 0 obj<< /Type /XObject /Subtype /Image /Name /Im0 /Width {$width} /Height {$height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length {$imgLen} >>stream\n";
+    $pdf .= $jpegData . "\nendstream\nendobj\n";
+
+    // 5: Contents
+    $offsets[5] = strlen($pdf);
+    $pdf .= "5 0 obj<< /Length {$contentLen} >>stream\n";
+    $pdf .= $contentStream . "endstream\nendobj\n";
+
+    // xref table\n";
+    $xrefStart = strlen($pdf);
+    $pdf .= "xref\n0 6\n0000000000 65535 f \n";
+    for ($i = 1; $i <= 5; $i++) {
+        $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
+    }
+    $pdf .= "trailer<< /Size 6 /Root 1 0 R >>\nstartxref\n{$xrefStart}\n%%EOF";
+
+    return file_put_contents($outputPath, $pdf) !== false;
 }
 
 ?>

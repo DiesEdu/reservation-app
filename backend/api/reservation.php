@@ -162,19 +162,22 @@ function renderReservationTicket($id)
         $name = $reservation['name'];
         $position = $reservation['position'];
         $company = $reservation['company'];
-        $table = 'Table: ' . $reservation['table_preference'];
+        $tableTitle = 'Table';
+        $table = $reservation['table_preference'];
         $qrData = $reservation['qr_code'];
 
         $nameSize = max(28, (int) ($width * 0.035));
         $positionSize = max(20, (int) ($width * 0.025));
         $companySize = max(20, (int) ($width * 0.035));
+        $tableTitleSize = max(20, (int) ($width * 0.025));
         $tableSize = max(22, (int) ($width * 0.025));
 
         // Vertical layout: name -> QR -> table
-        $nameY = (int) ($height * 0.71);
-        $companyY = (int) ($height * 0.76);
-        $positionY = (int) ($height * 0.79);
-        $qrGapBottom = (int) ($height * 0.03);
+        $nameY = (int) ($height * 0.72);
+        $companyY = (int) ($height * 0.77);
+        $positionY = (int) ($height * 0.80);
+        $qrGapBottom = (int) ($height * 0.01);
+        $tableTitleY = null;
         $tableY = null; // set after QR position is known
 
         if ($canUseTtf) {
@@ -229,7 +232,8 @@ function renderReservationTicket($id)
                 );
 
                 // Set table Y relative to QR bottom
-                $tableY = $qrY + $qrHeight + $qrGapBottom;
+                $tableTitleY = $qrY + $qrHeight + $qrGapBottom;
+                $tableY = $qrY + $qrHeight + $qrGapBottom + (int) ($height * 0.07);
             } else {
                 error_log("Failed to generate QR code for reservation ID: " . $id);
             }
@@ -243,10 +247,18 @@ function renderReservationTicket($id)
 
         if ($canUseTtf) {
             // drawLeftedTtfText($image, $tableSize, 700, $tableY, $fontPath, $table, $textColor, $shadowColor);
+            drawCenteredTtfText($image, $tableTitleSize, $tableTitleY, $fontPath, $table, $textColor, $shadowColor, true);
+        } else {
+            // drawLeftedGdText($image, $fontPathCustom, 15, 700, $tableY, strtoupper($table), $textColor);
+            drawCenteredGdText($image, $fontPathCustom, 15, $tableTitleY, strtoupper($tableTitle), $textColor, true);
+        }
+
+        if ($canUseTtf) {
+            // drawLeftedTtfText($image, $tableSize, 700, $tableY, $fontPath, $table, $textColor, $shadowColor);
             drawCenteredTtfText($image, $tableSize, $tableY, $fontPath, $table, $textColor, $shadowColor);
         } else {
             // drawLeftedGdText($image, $fontPathCustom, 15, 700, $tableY, strtoupper($table), $textColor);
-            drawCenteredGdText($image, $fontPathCustom, 25, $tableY, strtoupper($table), $textColor);
+            drawCenteredGdText($image, $fontPathCustom, 45, $tableY, strtoupper($table), $textColor);
         }
 
         header('Content-Type: image/png');

@@ -18,6 +18,7 @@ coverage
 .env.example
 /guide
 /backend/vendor
+/backend/upload
 
 # Editor directories and files
 .vscode/*

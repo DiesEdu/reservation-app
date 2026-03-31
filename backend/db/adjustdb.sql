@@ -1,0 +1,1 @@
+ALTER TABLE reservations ADD COLUMN generate_ticket DATETIME NULL AFTER qr_code;
