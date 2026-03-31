@@ -558,7 +558,7 @@ function getReservationSummary()
             SELECT
                 COUNT(*) AS total_reservations,
                 SUM(status = 'confirmed') AS confirmed_count,
-                SUM(status = 'pending') AS pending_count,
+                SUM(verified = '1') AS verified_count,
                 SUM(guests) AS total_guests
             FROM reservations
         ");
@@ -570,7 +570,7 @@ function getReservationSummary()
             'data' => [
                 'totalReservations' => (int) ($row['total_reservations'] ?? 0),
                 'confirmed' => (int) ($row['confirmed_count'] ?? 0),
-                'pending' => (int) ($row['pending_count'] ?? 0),
+                'verified' => (int) ($row['verified_count'] ?? 0),
                 'totalGuests' => (int) ($row['total_guests'] ?? 0),
             ],
         ]);
