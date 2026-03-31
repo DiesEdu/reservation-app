@@ -322,6 +322,10 @@
                   <i v-else class="bi bi-check-circle"></i>
                   Mark as Verified
                 </button>
+                <button class="btn-secondary" @click="printTicket" :disabled="!selectedReservation">
+                  <i class="bi bi-printer"></i>
+                  Print Ticket
+                </button>
               </div>
             </div>
           </transition>
@@ -335,6 +339,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useReservationStore } from '../stores/reservations'
 import { useAuthStore } from '../stores/auth'
+import QRCode from 'qrcode'
 import Navbar from '../components/Navbar.vue'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
@@ -377,6 +382,7 @@ const verificationDetails = ref(null)
 const verificationLoading = ref(false)
 const verificationError = ref('')
 const verificationSuccess = ref('')
+const qrCodeDataUrl = ref('')
 
 const tableResults = computed(() => {
   let results = tableData.value
@@ -525,6 +531,7 @@ const closeVerificationModal = () => {
   verificationDetails.value = null
   verificationError.value = ''
   verificationSuccess.value = ''
+  qrCodeDataUrl.value = ''
 }
 
 const checkVerificationStatus = async (qrCode) => {
@@ -587,6 +594,90 @@ const updateLocalReservation = (updated) => {
   selectedReservation.value = tableData.value.find((item) => item.id === updated.id)
 }
 
+const generateQRCode = async (reservation) => {
+  selectedReservation.value = reservation
+  const qrData =
+    reservation.qrCode || `RES-${reservation.id}-${new Date(reservation.createdAt).getTime()}`
+
+  try {
+    qrCodeDataUrl.value = await QRCode.toDataURL(qrData, {
+      width: 256,
+      margin: 2,
+      color: {
+        dark: '#0a0a0a',
+        light: '#ffffff',
+      },
+    })
+  } catch (err) {
+    console.error('Failed to generate QR code:', err)
+    verificationError.value = 'Failed to generate QR code for print.'
+  }
+}
+
+const printTicket = async () => {
+  if (!selectedReservation.value) return
+  const res = selectedReservation.value
+  qrCodeDataUrl.value = ''
+  await generateQRCode(res)
+
+  const html = `
+    <html>
+      <head>
+        <title>Reservation Ticket</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
+          .ticket { border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
+          .title { font-size: 20px; margin-bottom: 12px; }
+          .row { margin: 6px 0; }
+          .label { font-weight: 700; display: inline-block; width: 120px; }
+          .qr { text-align: center; margin: 16px 0; }
+          .qr img { max-width: 240px; }
+        </style>
+      </head>
+      <body>
+        <div class="ticket">
+          <div class="title">Reservation Ticket</div>
+          <div class="qr"><img src="${qrCodeDataUrl.value || ''}" alt="QR Code" /></div>
+          <div class="row"><span class="label">Table Number:</span> ${res.table || '-'}</div>
+          <div class="row"><span class="label">Name:</span> ${res.name}</div>
+        </div>
+      </body>
+    </html>
+  `
+
+  const iframe = document.createElement('iframe')
+  iframe.style.position = 'fixed'
+  iframe.style.left = '-99999px'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.setAttribute('aria-hidden', 'true')
+  document.body.appendChild(iframe)
+
+  const doc = iframe.contentWindow?.document
+  if (!doc) {
+    verificationError.value = 'Unable to initiate print.'
+    iframe.remove()
+    return
+  }
+
+  doc.open()
+  doc.write(html)
+  doc.close()
+
+  iframe.onload = () => {
+    try {
+      const win = iframe.contentWindow
+      win?.focus()
+      win?.print()
+    } catch (err) {
+      console.error('Print error:', err)
+      verificationError.value = 'Unable to print ticket.'
+    } finally {
+      setTimeout(() => iframe.remove(), 200)
+    }
+  }
+}
+
 // Fetch reservations on mount
 onMounted(async () => {
   await authStore.initializeAuth()
@@ -642,7 +733,6 @@ const fetchAnalytics = async () => {
   try {
     const res = await fetch(`${API_URL}/reservations/analytics`)
     const data = await res.json()
-    console.log('Analytics API response:', data)
     if (data.success && data.data) {
       analyticsData.value = {
         statusCounts: data.data.statusCounts || [],
@@ -650,7 +740,6 @@ const fetchAnalytics = async () => {
         guestDistribution: data.data.guestDistribution || [],
         peakHours: data.data.peakHours || [],
       }
-      console.log('Analytics dailyCounts:', analyticsData.value.dailyCounts)
     }
   } catch (err) {
     console.error('Failed to load analytics', err)
@@ -1051,7 +1140,8 @@ const summaryStats = computed(() => {
 }
 
 .btn-outline,
-.btn-primary {
+.btn-primary,
+.btn-secondary {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -1073,6 +1163,11 @@ const summaryStats = computed(() => {
   color: white;
 }
 
+.btn-secondary {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
 .btn-primary.gradient-text {
   background: linear-gradient(135deg, var(--accent), var(--primary));
   background-clip: text;
@@ -1081,7 +1176,8 @@ const summaryStats = computed(() => {
 }
 
 .btn-outline:disabled,
-.btn-primary:disabled {
+.btn-primary:disabled,
+.btn-secondary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
