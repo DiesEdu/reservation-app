@@ -136,6 +136,14 @@
         >Returning to scan in <strong>{{ countdown }}</strong> seconds</span
       >
     </div>
+
+    <!-- Scan QR Code Hint - Fixed Middle Right -->
+    <div class="scan-hint-fixed">
+      <div class="scan-hint-content">
+        <span>Camera</span>
+        <i class="bi bi-arrow-right"></i>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -196,7 +204,7 @@ const startScanner = async () => {
       aspectRatio: 1.0,
     }
 
-    await html5QrCode.start({ facingMode: 'environment' }, config, onScanSuccess, onScanFailure)
+    await html5QrCode.start({ facingMode: 'user' }, config, onScanSuccess, onScanFailure)
   } catch (err) {
     console.error('Error starting scanner:', err)
     errorMessage.value = 'Unable to access camera. Please check permissions or enter code manually.'
@@ -613,6 +621,57 @@ onUnmounted(() => {
   font-size: 1.25rem;
   min-width: 1.5rem;
   text-align: center;
+}
+
+/* Scan Hint Fixed - Middle Right */
+.scan-hint-fixed {
+  position: fixed;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  animation: pulseHint 2s ease-in-out infinite;
+}
+
+@keyframes pulseHint {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.scan-hint-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 2px solid;
+  background-color: rgba(255, 216, 77, 0.5);
+  border-color: #ffd84d;
+  color: #0f172a;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(31, 79, 163, 0.25);
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.scan-hint-content i {
+  font-size: 1.5rem;
+  animation: bounceArrow 1.5s ease-in-out infinite;
+}
+
+@keyframes bounceArrow {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-8px);
+  }
 }
 
 /* Local background (kept subtle and non-blocking) */

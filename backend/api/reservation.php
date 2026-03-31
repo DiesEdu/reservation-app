@@ -69,6 +69,9 @@ if ($path === '/reservations' || $path === '/reservations/') {
 } elseif ($path === '/reservations/verify' && $method === 'POST') {
     // Verify reservation with QR code
     verifyReservation();
+} elseif ($path === '/reservations/verification-status' && $method === 'POST') {
+    // Check verification status without mutating record
+    checkReservationVerificationStatus();
 } elseif ($path === '/reservations/import' && $method === 'POST') {
     // Bulk import reservations from Excel
     importReservationsFromExcel();
@@ -243,7 +246,7 @@ function renderReservationTicket($id)
             drawCenteredTtfText($image, $tableSize, $tableY, $fontPath, $table, $textColor, $shadowColor);
         } else {
             // drawLeftedGdText($image, $fontPathCustom, 15, 700, $tableY, strtoupper($table), $textColor);
-            drawCenteredGdText($image, $fontPathCustom, 10, $tableY, strtoupper($table), $textColor);
+            drawCenteredGdText($image, $fontPathCustom, 25, $tableY, strtoupper($table), $textColor);
         }
 
         header('Content-Type: image/png');
@@ -638,7 +641,7 @@ function getReservationAnalytics()
 
         $peakHours = [];
         for ($h = 0; $h <= 23; $h++) {
-            $row = array_values(array_filter($peakRows, fn($r) => (int)$r['hour'] === $h));
+            $row = array_values(array_filter($peakRows, fn($r) => (int) $r['hour'] === $h));
             $count = $row ? (int) $row[0]['count'] : 0;
             $peakHours[] = ['hour' => $h, 'count' => $count];
         }
@@ -1353,6 +1356,76 @@ function verifyReservation()
         echo json_encode([
             'success' => false,
             'error' => 'Failed to verify reservation: ' . $e->getMessage()
+        ]);
+    }
+}
+
+/**
+ * POST - Check reservation verification status without updating it
+ */
+function checkReservationVerificationStatus()
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    if (empty($input['qrCode'])) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'error' => 'QR code is required'
+        ]);
+        return;
+    }
+
+    $qrCode = $input['qrCode'];
+
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM reservations WHERE qr_code = ?");
+        $stmt->execute([$qrCode]);
+        $reservation = $stmt->fetch();
+
+        if (!$reservation) {
+            http_response_code(404);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Invalid QR code or reservation not found'
+            ]);
+            return;
+        }
+
+        $formatted = [
+            'id' => (int) $reservation['id'],
+            'name' => $reservation['name'],
+            'position' => $reservation['position'],
+            'company' => $reservation['company'],
+            'email' => $reservation['email'],
+            'phone' => $reservation['phone'],
+            'date' => $reservation['date'],
+            'time' => substr($reservation['time'], 0, 5),
+            'guests' => (int) $reservation['guests'],
+            'table' => $reservation['table_preference'],
+            'status' => $reservation['status'],
+            'specialRequests' => $reservation['special_requests'],
+            'qrCode' => $reservation['qr_code'],
+            'verified' => (bool) $reservation['verified'],
+            'verifiedAt' => $reservation['verified_at'],
+            'createdAt' => $reservation['created_at']
+        ];
+
+        echo json_encode([
+            'success' => true,
+            'message' => $reservation['verified']
+                ? 'Reservation already verified'
+                : 'Reservation not yet verified',
+            'data' => $formatted
+        ]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to check verification status: ' . $e->getMessage()
         ]);
     }
 }

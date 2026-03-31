@@ -149,16 +149,13 @@
                           <i v-if="sortField === 'name'" :class="sortIcon"></i>
                         </th>
                         <th>Contact</th>
-                        <th @click="sortBy('guests')" class="sortable">
-                          Guests
-                          <i v-if="sortField === 'guests'" :class="sortIcon"></i>
-                        </th>
                         <th>Table</th>
                         <th @click="sortBy('status')" class="sortable">
                           Status
                           <i v-if="sortField === 'status'" :class="sortIcon"></i>
                         </th>
                         <th>Verified</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -180,7 +177,6 @@
                             <span class="phone">{{ reservation.phone }}</span>
                           </div>
                         </td>
-                        <td>{{ reservation.guests }}</td>
                         <td>{{ reservation.table }}</td>
                         <td>
                           <span class="status-badge" :class="reservation.status">
@@ -196,6 +192,17 @@
                             ></i>
                             {{ reservation.verified ? 'Yes' : 'No' }}
                           </span>
+                        </td>
+                        <td>
+                          <div class="action-buttons">
+                            <button
+                              @click="showPopupManualVerification(reservation.id)"
+                              class="btn btn-view"
+                              title="View details"
+                            >
+                              <i class="bi bi-check-circle"></i>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                       <tr v-if="paginatedResults.length === 0">
@@ -233,6 +240,93 @@
           </section>
         </div>
       </main>
+      <!-- Manual Verification Modal -->
+      <transition name="modal-fade">
+        <div
+          v-if="verificationModalVisible && selectedReservation"
+          class="verification-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          @click.self="closeVerificationModal"
+        >
+          <transition name="modal-rise">
+            <div class="verification-modal" v-if="verificationModalVisible">
+              <button class="modal-close" @click="closeVerificationModal" aria-label="Close dialog">
+                <i class="bi bi-x-lg"></i>
+              </button>
+
+              <div class="modal-header">
+                <div>
+                  <p class="modal-eyebrow">Manual Verification</p>
+                  <h3>{{ selectedReservation.name }}</h3>
+                  <p class="modal-subtitle">{{ selectedReservation.company || 'No company' }}</p>
+                </div>
+                <div class="modal-badge" :class="{ verified: verificationDetails?.verified }">
+                  <i
+                    :class="verificationDetails?.verified ? 'bi bi-check-circle' : 'bi bi-hourglass'"
+                  ></i>
+                  {{ verificationDetails?.verified ? 'Verified' : 'Not Verified' }}
+                </div>
+              </div>
+
+              <div class="modal-body">
+                <div class="modal-info-grid">
+                  <div>
+                    <p class="label">Table</p>
+                    <p class="value">{{ selectedReservation.table || '-' }}</p>
+                  </div>
+                  <div>
+                    <p class="label">QR Code</p>
+                    <p class="value code">{{ selectedReservation.qrCode }}</p>
+                  </div>
+                  <div>
+                    <p class="label">Status</p>
+                    <p class="value status">
+                      {{ verificationDetails?.status || selectedReservation.status }}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="label">Verified At</p>
+                    <p class="value">
+                      {{ verificationDetails?.verifiedAt || 'Not yet verified' }}
+                    </p>
+                  </div>
+                </div>
+
+                <div v-if="verificationError" class="modal-alert error">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <span>{{ verificationError }}</span>
+                </div>
+                <div v-if="verificationSuccess" class="modal-alert success">
+                  <i class="bi bi-check-circle-fill"></i>
+                  <span>{{ verificationSuccess }}</span>
+                </div>
+              </div>
+
+              <div class="modal-actions">
+                <button
+                  class="btn-outline"
+                  @click="checkVerificationStatus(selectedReservation.qrCode)"
+                  :disabled="verificationLoading"
+                >
+                  <i v-if="verificationLoading" class="bi bi-arrow-repeat spinner"></i>
+                  <i v-else class="bi bi-arrow-clockwise"></i>
+                  Recheck
+                </button>
+                <button
+                  class="btn-primary"
+                  @click="confirmManualVerification"
+                  :disabled="verificationLoading || verificationDetails?.verified"
+                >
+                  <i v-if="verificationLoading" class="bi bi-hourglass-split spinner"></i>
+                  <i v-else class="bi bi-check-circle"></i>
+                  Mark as Verified
+                </button>
+              </div>
+            </div>
+          </transition>
+        </div>
+      </transition>
     </div>
   </div>
 </template>
@@ -275,6 +369,14 @@ const tablePagination = ref({
 })
 const tableLoading = ref(false)
 const tableError = ref(null)
+
+// Manual verification modal state
+const verificationModalVisible = ref(false)
+const selectedReservation = ref(null)
+const verificationDetails = ref(null)
+const verificationLoading = ref(false)
+const verificationError = ref('')
+const verificationSuccess = ref('')
 
 const tableResults = computed(() => {
   let results = tableData.value
@@ -405,6 +507,86 @@ const clearFilters = () => {
   fetchTableData()
 }
 
+const showPopupManualVerification = async (reservationId) => {
+  const found = tableData.value.find((item) => item.id === reservationId)
+  if (!found) return
+
+  selectedReservation.value = found
+  verificationDetails.value = null
+  verificationError.value = ''
+  verificationSuccess.value = ''
+  verificationModalVisible.value = true
+  await checkVerificationStatus(found.qrCode)
+}
+
+const closeVerificationModal = () => {
+  verificationModalVisible.value = false
+  selectedReservation.value = null
+  verificationDetails.value = null
+  verificationError.value = ''
+  verificationSuccess.value = ''
+}
+
+const checkVerificationStatus = async (qrCode) => {
+  verificationLoading.value = true
+  verificationError.value = ''
+  try {
+    const response = await fetch(`${API_URL}/reservations/verification-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ qrCode }),
+    })
+    const result = await response.json()
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Unable to check verification status')
+    }
+    verificationDetails.value = result.data
+  } catch (err) {
+    verificationError.value = err.message || 'Unable to check verification status'
+  } finally {
+    verificationLoading.value = false
+  }
+}
+
+const confirmManualVerification = async () => {
+  if (!selectedReservation.value) return
+  verificationLoading.value = true
+  verificationError.value = ''
+  verificationSuccess.value = ''
+
+  try {
+    const response = await fetch(`${API_URL}/reservations/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        qrCode: selectedReservation.value.qrCode,
+        method: 'admin_manual',
+      }),
+    })
+    const result = await response.json()
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Failed to verify reservation')
+    }
+
+    verificationDetails.value = result.data
+    verificationSuccess.value = result.message || 'Reservation verified successfully'
+    updateLocalReservation(result.data)
+  } catch (err) {
+    verificationError.value = err.message || 'Failed to verify reservation'
+  } finally {
+    verificationLoading.value = false
+  }
+}
+
+const updateLocalReservation = (updated) => {
+  tableData.value = tableData.value.map((item) =>
+    item.id === updated.id
+      ? { ...item, verified: updated.verified, verifiedAt: updated.verifiedAt }
+      : item,
+  )
+  selectedReservation.value = tableData.value.find((item) => item.id === updated.id)
+}
+
 // Fetch reservations on mount
 onMounted(async () => {
   await authStore.initializeAuth()
@@ -418,28 +600,6 @@ onMounted(async () => {
     fetchAnalytics()
   }
 })
-
-// Filter reservations based on time filter
-// const filteredReservations = computed(() => {
-//   const now = new Date()
-//   const reservations = store.reservations
-
-//   if (timeFilter.value === 'all') return reservations
-
-//   return reservations.filter((r) => {
-//     const reservationDate = new Date(r.date)
-//     if (timeFilter.value === 'today') {
-//       return reservationDate.toDateString() === now.toDateString()
-//     } else if (timeFilter.value === 'week') {
-//       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-//       return reservationDate >= weekAgo
-//     } else if (timeFilter.value === 'month') {
-//       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-//       return reservationDate >= monthAgo
-//     }
-//     return true
-//   })
-// })
 
 // Reset page on client-only filters
 watch([timeFilter], () => {
@@ -529,178 +689,6 @@ const summaryStats = computed(() => {
     },
   ]
 })
-
-// Status Segments for Donut Chart (backend)
-// const statusSegments = computed(() => {
-//   const total =
-//     analyticsData.value.statusCounts.reduce((sum, s) => sum + Number(s.count || 0), 0) || 1
-//   const circumference = 2 * Math.PI * 40
-
-//   const colorMap = {
-//     confirmed: '#28a745',
-//     pending: '#ffc107',
-//     cancelled: '#dc3545',
-//   }
-
-//   let offset = 0
-//   return analyticsData.value.statusCounts.map((s) => {
-//     const pct = Number(s.count || 0) / total || 0
-//     const segment = {
-//       label: s.status || 'unknown',
-//       count: Number(s.count || 0),
-//       percent: Math.round(pct * 100),
-//       color: colorMap[s.status] || '#6c757d',
-//       dashArray: `${pct * circumference} ${circumference}`,
-//       dashOffset: -offset,
-//     }
-//     offset += pct * circumference
-//     return segment
-//   })
-// })
-
-// Helper function to format date as YYYY-MM-DD in local timezone
-// const formatDateISO = (date) => {
-//   const year = date.getFullYear()
-//   const month = String(date.getMonth() + 1).padStart(2, '0')
-//   const day = String(date.getDate()).padStart(2, '0')
-//   return `${year}-${month}-${day}`
-// }
-
-// Reservations by Date (last 7 days)
-// const reservationsByDate = computed(() => {
-//   const now = new Date()
-
-//   // Build lookup with multiple format possibilities
-//   const lookup = {}
-//   analyticsData.value.dailyCounts.forEach((d) => {
-//     if (d.day) {
-//       // Try different formats: raw, trimmed, etc.
-//       lookup[String(d.day).trim()] = Number(d.count || 0)
-//       // Also try with leading/trailing spaces removed
-//       lookup[String(d.day)] = Number(d.count || 0)
-//     }
-//   })
-
-//   const days = []
-//   for (let i = 6; i >= 0; i--) {
-//     const d = new Date(now)
-//     d.setDate(now.getDate() - i)
-//     const iso = formatDateISO(d)
-//     days.push({
-//       date: iso,
-//       label: d.toLocaleDateString('en-US', { weekday: 'short' }),
-//       count: lookup[iso] || 0,
-//       percent: 0,
-//     })
-//   }
-
-//   const maxCount = Math.max(...days.map((d) => d.count), 1)
-//   days.forEach((d) => {
-//     d.percent = (d.count / maxCount) * 100
-//   })
-
-//   return days
-// })
-
-// Guests Distribution (backend)
-// const guestsDistribution = computed(() => {
-//   const distribution = analyticsData.value.guestDistribution.map((g) => ({
-//     range: g.range,
-//     count: Number(g.count || 0),
-//     percent: 0,
-//   }))
-
-//   const maxCount = Math.max(...distribution.map((d) => d.count), 1)
-//   distribution.forEach((d) => {
-//     d.percent = (d.count / maxCount) * 100
-//   })
-
-//   return distribution
-// })
-
-// // Peak Hours (backend)
-// const peakHours = computed(() => {
-//   const hours = analyticsData.value.peakHours.map((h) => {
-//     const hourInt = Number(h.hour || 0)
-//     const displayHour = hourInt % 12 || 12
-//     const label = `${displayHour}:00 ${hourInt >= 12 ? 'PM' : 'AM'}`
-//     return {
-//       time: label,
-//       count: Number(h.count || 0),
-//       percent: 0,
-//     }
-//   })
-
-//   const maxCount = Math.max(...hours.map((h) => h.count), 1)
-//   hours.forEach((h) => {
-//     h.percent = (h.count / maxCount) * 100
-//   })
-
-//   return hours
-// })
-
-// // Table Utilization
-// const tableUtilization = computed(() => {
-//   const data = filteredReservations.value
-//   const tables = []
-
-//   for (let i = 1; i <= 10; i++) {
-//     const capacity = i <= 4 ? 2 : i <= 7 ? 4 : 6
-//     const reserved = data.filter((r) => r.table === i).length
-//     tables.push({
-//       number: i,
-//       capacity,
-//       reserved,
-//     })
-//   }
-
-//   return tables
-// })
-
-// // Recent Reservations
-// const recentReservations = computed(() => {
-//   return [...filteredReservations.value]
-//     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-//     .slice(0, 5)
-// })
-
-// // Quick Insights
-// const averageDailyReservations = computed(() => {
-//   const data = filteredReservations.value
-//   if (data.length === 0) return 0
-//   return (data.length / 7).toFixed(1)
-// })
-
-// const averagePartySize = computed(() => {
-//   const data = filteredReservations.value
-//   if (data.length === 0) return 0
-//   const total = data.reduce((sum, r) => sum + r.guests, 0)
-//   return (total / data.length).toFixed(1)
-// })
-
-// const mostPopularTime = computed(() => {
-//   const data = filteredReservations.value
-//   if (data.length === 0) return 'N/A'
-
-//   const timeCounts = {}
-//   data.forEach((r) => {
-//     timeCounts[r.time] = (timeCounts[r.time] || 0) + 1
-//   })
-
-//   const popular = Object.entries(timeCounts).sort((a, b) => b[1] - a[1])[0]
-//   if (!popular) return 'N/A'
-
-//   const [hour] = popular[0].split(':')
-//   const h = parseInt(hour)
-//   return `${h > 12 ? h - 12 : h}:00 ${h >= 12 ? 'PM' : 'AM'}`
-// })
-
-// const confirmationRate = computed(() => {
-//   const data = filteredReservations.value
-//   if (data.length === 0) return 0
-//   const confirmed = data.filter((r) => r.status === 'confirmed').length
-//   return Math.round((confirmed / data.length) * 100)
-// })
 </script>
 
 <style scoped>
@@ -905,6 +893,207 @@ const summaryStats = computed(() => {
   font-size: 0.9rem;
   color: #5b6b86;
   margin-top: 0.25rem;
+}
+
+/* Verification Modal */
+.verification-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 1rem;
+}
+
+.verification-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: min(560px, 100%);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+  position: relative;
+  border: 1px solid var(--border);
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.modal-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--primary-dark);
+}
+
+.modal-subtitle {
+  color: #64748b;
+  margin: 0.1rem 0 0;
+}
+
+.modal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #fff7ed;
+  color: #c2410c;
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  font-weight: 600;
+  border: 1px solid #fed7aa;
+}
+
+.modal-badge.verified {
+  background: #ecfdf3;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.modal-body {
+  margin: 0.5rem 0 1rem;
+}
+
+.modal-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.modal-info-grid .label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0 0 0.15rem;
+}
+
+.modal-info-grid .value {
+  margin: 0;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.modal-info-grid .value.code {
+  font-family: 'Fira Code', Consolas, monospace;
+  font-size: 0.95rem;
+}
+
+.modal-info-grid .value.status {
+  text-transform: capitalize;
+}
+
+.modal-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  margin-top: 0.75rem;
+  font-weight: 600;
+}
+
+.modal-alert.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecdd3;
+}
+
+.modal-alert.success {
+  background: #ecfdf3;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-rise-enter-active,
+.modal-rise-leave-active {
+  transition: all 0.25s ease;
+}
+.modal-rise-enter-from,
+.modal-rise-leave-to {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn-outline,
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-outline {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  color: var(--primary-dark);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+  color: white;
+}
+
+.btn-primary.gradient-text {
+  background: linear-gradient(135deg, var(--accent), var(--primary));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-outline:disabled,
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .stat-trend {
