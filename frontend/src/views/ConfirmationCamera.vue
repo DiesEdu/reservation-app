@@ -224,7 +224,6 @@ const stopScanner = async () => {
 }
 
 const onScanSuccess = (decodedText) => {
-  console.log('QR Code scanned:', decodedText)
   // Play beep sound on successful scan
   playBeep()
   stopScanner()
@@ -312,6 +311,7 @@ const verifyReservation = async (code) => {
     alreadyVerified.value = result.data.alreadyVerified || false
     verifiedAt.value = result.data.verifiedAt || null
   } catch (error) {
+    startScanner();
     console.error('Verification error:', error)
     errorMessage.value = error.message || 'Failed to verify reservation. Please try again.'
     // Clear and focus the input field when there's an error
