@@ -140,8 +140,10 @@
     <!-- Scan QR Code Hint - Fixed Middle Right -->
     <div class="scan-hint-fixed">
       <div class="scan-hint-content">
-        <span>Camera</span>
-        <i class="bi bi-arrow-right"></i>
+        <span>Scan Here</span>
+      </div>
+      <div class="direct-arrow">
+        <img src="../assets/gif/arrow-direct.gif" style="width: 5rem" alt="Arrow Direction" />
       </div>
     </div>
   </div>
@@ -311,7 +313,7 @@ const verifyReservation = async (code) => {
     alreadyVerified.value = result.data.alreadyVerified || false
     verifiedAt.value = result.data.verifiedAt || null
   } catch (error) {
-    startScanner();
+    startScanner()
     console.error('Verification error:', error)
     errorMessage.value = error.message || 'Failed to verify reservation. Please try again.'
     // Clear and focus the input field when there's an error
@@ -627,7 +629,7 @@ onUnmounted(() => {
 .scan-hint-fixed {
   position: fixed;
   right: 10px;
-  top: 50%;
+  top: 46%;
   transform: translateY(-50%);
   z-index: 10;
   animation: pulseHint 2s ease-in-out infinite;
@@ -638,7 +640,7 @@ onUnmounted(() => {
   100% {
     opacity: 1;
   }
-  50% {
+  30% {
     opacity: 0.7;
   }
 }
@@ -659,21 +661,12 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-.scan-hint-content i {
-  font-size: 1.5rem;
-  animation: bounceArrow 1.5s ease-in-out infinite;
+.direct-arrow {
+  margin-top: 0;
+  transform: rotate(180deg);
+  display: flex;
+  justify-content: start;
 }
-
-@keyframes bounceArrow {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(-8px);
-  }
-}
-
 /* Local background (kept subtle and non-blocking) */
 .bg-animation {
   position: fixed;
