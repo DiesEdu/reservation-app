@@ -911,6 +911,8 @@ function verifyReservation()
 
     $qrCode = $input['qrCode'];
     $verificationMethod = $input['method'] ?? 'qr_scan';
+    $localTz = new DateTimeZone('Asia/Jakarta');
+    $now = new DateTime('now', $localTz);
 
     try {
         // Find reservation by QR code
@@ -979,10 +981,10 @@ function verifyReservation()
         // Update reservation as verified
         $updateStmt = $pdo->prepare("
             UPDATE reservations
-            SET verified = TRUE, verified_at = NOW()
+            SET verified = TRUE, verified_at = ?
             WHERE id = ?
         ");
-        $updateStmt->execute([$reservation['id']]);
+        $updateStmt->execute([$now->format('Y-m-d H:i:s'), $reservation['id']]);
 
         // Log verification
         $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
@@ -990,12 +992,13 @@ function verifyReservation()
 
         $logStmt = $pdo->prepare("
             INSERT INTO reservation_verifications
-            (reservation_id, qr_code, verification_method, ip_address, user_agent)
-            VALUES (?, ?, ?, ?, ?)
+            (reservation_id, qr_code, verified_at, verification_method, ip_address, user_agent)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
         $logStmt->execute([
             $reservation['id'],
             $qrCode,
+            $now->format('Y-m-d H:i:s'),
             $verificationMethod,
             $ipAddress,
             $userAgent
@@ -1017,7 +1020,7 @@ function verifyReservation()
             'specialRequests' => $reservation['special_requests'],
             'qrCode' => $reservation['qr_code'],
             'verified' => true,
-            'verifiedAt' => date('Y-m-d H:i:s'),
+            'verifiedAt' => $now->format('Y-m-d H:i:s'),
             'createdAt' => $reservation['created_at']
         ];
 
