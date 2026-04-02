@@ -610,21 +610,76 @@ const printTicket = async () => {
       <head>
         <title>Reservation Ticket</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
-          .ticket { border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
-          .title { font-size: 20px; margin-bottom: 12px; }
-          .row { margin: 6px 0; }
-          .label { font-weight: 700; display: inline-block; width: 120px; }
-          .qr { text-align: center; margin: 16px 0; }
-          .qr img { max-width: 240px; }
+          @page {
+            size: 48mm 88mm;
+            margin: 0;
+          }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body {
+            font-family: 'Arial', sans-serif;
+            width: 48mm;
+            height: 88mm;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .ticket {
+            width: 100%;
+            height: 100%;
+            padding: 4mm 3mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+          }
+          .title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2mm;
+            color: #333;
+          }
+          .qr {
+            margin: 1mm 0 2mm;
+          }
+          .qr img {
+            width: 36mm;
+            height: 36mm;
+          }
+          .table-num {
+            font-size: 16px;
+            font-weight: 800;
+            margin-bottom: 1mm;
+            color: #0a0a0a;
+          }
+          .table-label {
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+            margin-bottom: 2mm;
+          }
+          .name {
+            font-size: 10px;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+          }
         </style>
       </head>
       <body>
         <div class="ticket">
           <div class="title">Reservation Ticket</div>
           <div class="qr"><img src="${qrCodeDataUrl.value || ''}" alt="QR Code" /></div>
-          <div class="row"><span class="label">Table Number:</span> ${res.table || '-'}</div>
-          <div class="row"><span class="label">Name:</span> ${res.name}</div>
+          <div class="table-label">Table</div>
+          <div class="table-num">${res.table || '-'}</div>
+          <div class="name">${res.name}</div>
         </div>
       </body>
     </html>
