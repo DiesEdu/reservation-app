@@ -134,19 +134,19 @@ function buildReservationTicketImage(array $reservation)
 
     // Vertical layout: name -> QR -> table
     $nameY = (int) ($height * 0.74);
-    $positionY = (int) ($height * 0.77);
-    $companyY = (int) ($height * 0.80);
+    $positionY = (int) ($height * 0.775);
+    $companyY = (int) ($height * 0.81);
     $qrGapBottom = (int) ($height * 0.03);
     $tableTitleY = null;
     $tableY = null; // set after QR position is known
 
-    drawCenteredGdText($image, $fontPathCustom, 15, $nameY, strtoupper($name), $textColor, false, true);
+    drawCenteredGdText($image, $fontPathCustom, 18, $nameY, ucwords($name), $textColor, false, true);
 
     // Draw position if available
-    drawCenteredGdText($image, $fontPathCustom, 15, $positionY, strtoupper($position), $textColor, false, true);
+    drawCenteredGdText($image, $fontPathCustom, 18, $positionY, ucwords($position), $textColor, false, true);
 
     // Draw company if available
-    drawCenteredGdText($image, $fontPathCustom, 15, $companyY, strtoupper($company), $textColor, false, true);
+    drawCenteredGdText($image, $fontPathCustom, 18, $companyY, ucwords($company), $textColor, false, true);
 
     // Add QR code (uses reservation.qr_code value)
     if (!empty($qrData)) {
@@ -183,9 +183,9 @@ function buildReservationTicketImage(array $reservation)
         $tableY = $nameY + (int) ($height * 0.12);
     }
 
-    drawCenteredGdText($image, $fontPathCustom, 15, $tableTitleY, strtoupper($tableTitle), $textColor, true);
+    drawCenteredGdText($image, $fontPathCustom, 15, $tableTitleY, ucwords($tableTitle), $textColor, true);
 
-    drawCenteredGdText($image, $fontPathCustom, 45, $tableY, strtoupper($table), $textColor);
+    drawCenteredGdText($image, $fontPathCustom, 45, $tableY, ucwords($table), $textColor);
 
     return $image;
 }

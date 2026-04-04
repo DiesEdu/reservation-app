@@ -147,7 +147,11 @@ function createBlastInfoGenerateTicket()
             }
 
             $pdfPath = $outputDir . "/{$table}_{$name}.pdf";
-            $saved = saveImageAsPdf($imageData, $pdfPath);
+            $rundownImagePath = $basePath . '/templates/rundown.png';
+            $rundownImageExists = file_exists($rundownImagePath);
+            error_log("createBlastInfoGenerateTicket: rundownImagePath = {$rundownImagePath}, exists = " . ($rundownImageExists ? 'true' : 'false'));
+            $rundownImageData = $rundownImageExists ? file_get_contents($rundownImagePath) : null;
+            $saved = saveImageAsPdf($imageData, $pdfPath, $rundownImageData);
 
             if ($saved) {
                 // Store the timestamp when ticket was generated in local time
@@ -498,10 +502,11 @@ function sendEmailWithAttachment($to, $subject, $message, $headers, $attachmentD
 }
 
 /**
- * Convert binary image data to a single-page PDF and save it.
+ * Convert binary image data to a PDF and save it.
+ * If $secondImageData is provided, creates a 2-page PDF with that image on page 2.
  * Uses a tiny manual PDF builder with a JPEG stream for broad compatibility.
  */
-function saveImageAsPdf($imageData, $outputPath)
+function saveImageAsPdf($imageData, $outputPath, $secondImageData = null)
 {
     // Create GD image to get dimensions and re-encode as JPEG (PDF friendly)
     $img = imagecreatefromstring($imageData);
@@ -520,11 +525,32 @@ function saveImageAsPdf($imageData, $outputPath)
         return false;
     }
 
-    $imgLen = strlen($jpegData);
-    $contentStream = "q\n{$width} 0 0 {$height} 0 0 cm\n/Im0 Do\nQ\n";
-    $contentLen = strlen($contentStream);
+    // Process second image if provided
+    $img2Data = null;
+    $width2 = 0;
+    $height2 = 0;
+    $isPng = false;
+    if ($secondImageData) {
+        // Suppress libpng warning for PNG with incorrect sRGB profile
+        $previousHandler = set_error_handler(function() { return true; });
+        $img2 = imagecreatefromstring($secondImageData);
+        set_error_handler($previousHandler);
+        
+        if ($img2) {
+            $width2 = imagesx($img2);
+            $height2 = imagesy($img2);
+            $sourceInfo = getimagesizefromstring($secondImageData);
+            $isPng = $sourceInfo && $sourceInfo[2] === IMAGETYPE_PNG;
 
-    // Build a minimal PDF with one image XObject
+            // Convert to JPEG for consistent PDF embedding
+            ob_start();
+            imagejpeg($img2, null, 90);
+            $img2Data = ob_get_clean();
+        }
+    }
+
+    // Build PDF
+    $pageCount = $secondImageData && $img2Data ? 2 : 1;
     $offsets = [];
     $pdf = "%PDF-1.3\n";
 
@@ -534,29 +560,61 @@ function saveImageAsPdf($imageData, $outputPath)
 
     // 2: Pages
     $offsets[2] = strlen($pdf);
-    $pdf .= "2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj\n";
+    $pdf .= "2 0 obj<< /Type /Pages /Kids [" . ($pageCount === 2 ? "3 0 R 6 0 R" : "3 0 R") . "] /Count {$pageCount} >>endobj\n";
 
-    // 3: Page
+    // === Page 1 (ticket) ===
+    // 3: Page 1
     $offsets[3] = strlen($pdf);
     $pdf .= "3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {$width} {$height}] /Resources << /ProcSet [/PDF /ImageC] /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>endobj\n";
 
-    // 4: Image XObject
+    // 4: Image XObject 1
+    $imgLen = strlen($jpegData);
     $offsets[4] = strlen($pdf);
     $pdf .= "4 0 obj<< /Type /XObject /Subtype /Image /Name /Im0 /Width {$width} /Height {$height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length {$imgLen} >>stream\n";
     $pdf .= $jpegData . "\nendstream\nendobj\n";
 
-    // 5: Contents
+    // 5: Contents 1
+    $contentStream = "q\n{$width} 0 0 {$height} 0 0 cm\n/Im0 Do\nQ\n";
+    $contentLen = strlen($contentStream);
     $offsets[5] = strlen($pdf);
     $pdf .= "5 0 obj<< /Length {$contentLen} >>stream\n";
     $pdf .= $contentStream . "endstream\nendobj\n";
 
-    // xref table\n";
-    $xrefStart = strlen($pdf);
-    $pdf .= "xref\n0 6\n0000000000 65535 f \n";
-    for ($i = 1; $i <= 5; $i++) {
-        $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
+    if ($pageCount === 2) {
+        // === Page 2 (rundown) ===
+        // 6: Page 2
+        $offsets[6] = strlen($pdf);
+        $pdf .= "6 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {$width2} {$height2}] /Resources << /ProcSet [/PDF /ImageC] /XObject << /Im1 7 0 R >> >> /Contents 8 0 R >>endobj\n";
+
+        // 7: Image XObject 2
+        $imgLen2 = strlen($img2Data);
+        $offsets[7] = strlen($pdf);
+        $pdf .= "7 0 obj<< /Type /XObject /Subtype /Image /Name /Im1 /Width {$width2} /Height {$height2} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length {$imgLen2} >>stream\n";
+        $pdf .= $img2Data . "\nendstream\nendobj\n";
+
+        // 8: Contents 2
+        $contentStream2 = "q\n{$width2} 0 0 {$height2} 0 0 cm\n/Im1 Do\nQ\n";
+        $contentLen2 = strlen($contentStream2);
+        $offsets[8] = strlen($pdf);
+        $pdf .= "8 0 obj<< /Length {$contentLen2} >>stream\n";
+        $pdf .= $contentStream2 . "endstream\nendobj\n";
+
+        // xref table
+        $xrefStart = strlen($pdf);
+        $pdf .= "xref\n0 9\n0000000000 65535 f \n";
+        for ($i = 1; $i <= 8; $i++) {
+            $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
+        }
+        $pdf .= "trailer<< /Size 9 /Root 1 0 R >>\nstartxref\n{$xrefStart}\n%%EOF";
+    } else {
+        // xref table for single page
+        $xrefStart = strlen($pdf);
+        $pdf .= "xref\n0 6\n0000000000 65535 f \n";
+        for ($i = 1; $i <= 5; $i++) {
+            $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
+        }
+        $pdf .= "trailer<< /Size 6 /Root 1 0 R >>\nstartxref\n{$xrefStart}\n%%EOF";
     }
-    $pdf .= "trailer<< /Size 6 /Root 1 0 R >>\nstartxref\n{$xrefStart}\n%%EOF";
 
     return file_put_contents($outputPath, $pdf) !== false;
 }
