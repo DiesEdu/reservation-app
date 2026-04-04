@@ -26,7 +26,7 @@ function getReservationTicketData($reservationId, $format = 'png')
         ];
     }
 
-    $stmt = $pdo->prepare("SELECT name, position, company, table_preference, qr_code FROM reservations WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT name, position, company, table_preference, table_color, qr_code FROM reservations WHERE id = ?");
     $stmt->execute([$reservationId]);
     $reservation = $stmt->fetch();
 
@@ -130,6 +130,7 @@ function buildReservationTicketImage(array $reservation)
     $company = $reservation['company'];
     $tableTitle = 'Table';
     $table = $reservation['table_preference'];
+    $tableColor = $reservation['table_color'] ?? 'White';
     $qrData = $reservation['qr_code'];
 
     // Vertical layout: name -> QR -> table
@@ -138,15 +139,20 @@ function buildReservationTicketImage(array $reservation)
     $companyY = (int) ($height * 0.30);
     $qrGapBottom = (int) ($height * 0.03);
     $tableTitleY = null;
-    $tableY = null; // set after QR position is known
+    $tableY = null;
 
-    drawCenteredGdText($image, $fontPathCustom, 55, $nameY, ucwords($name), $textColor, false, true);
+    $useSmallerFont = strlen($name) > 30 || strlen($position) > 30 || strlen($company) > 30;
+    $nameFontSize = $useSmallerFont ? 40 : 55;
+    $positionFontSize = $useSmallerFont ? 35 : 45;
+    $companyFontSize = $useSmallerFont ? 35 : 45;
+
+    drawCenteredGdText($image, $fontPathCustom, $nameFontSize, $nameY, ucwords($name), $textColor, false, true);
 
     // Draw position if available
-    drawCenteredGdText($image, $fontPathCustom, 45, $positionY, ucwords($position), $textColor, false, true);
+    drawCenteredGdText($image, $fontPathCustom, $positionFontSize, $positionY, ucwords($position), $textColor, false, true);
 
     // Draw company if available
-    drawCenteredGdText($image, $fontPathCustom, 45, $companyY, ucwords($company), $textColor, false, true);
+    drawCenteredGdText($image, $fontPathCustom, $companyFontSize, $companyY, ucwords($company), $textColor, false, true);
 
     // Add QR code (uses reservation.qr_code value)
     if (!empty($qrData)) {
@@ -185,9 +191,63 @@ function buildReservationTicketImage(array $reservation)
 
     drawCenteredGdText($image, $fontPathCustom, 35, $tableTitleY, ucwords($tableTitle), $textColor, true);
 
-    drawCenteredGdText($image, $fontPathCustom, 140, $tableY, ucwords($table), $textColor, false, true);
+    drawCenteredGdTextWithBackground($image, $fontPathCustom, 140, $tableY, ucwords($table), $textColor, getTableColorRgb($tableColor), false, true);
 
     return $image;
+}
+
+function getTableColorRgb($colorName)
+{
+    $colors = [
+        'Purple' => [128, 0, 128],
+        'Cyan' => [0, 255, 255],
+        'Orange' => [255, 165, 0],
+        'Cream' => [255, 253, 208],
+        'White' => [255, 255, 255],
+    ];
+    $result = $colors[$colorName] ?? [255, 255, 255];
+    return $result;
+}
+
+function drawCenteredGdTextWithBackground($image, $fontPath, $fontSize, $y, $text, $textColor, $bgColorRgb, $isItalic = false, $isBold = false)
+{
+    if ($isBold) {
+        $fontPath = __DIR__ . '/../templates/fonts/Granville_Bold.otf';
+    } elseif ($isItalic) {
+        $fontPath = __DIR__ . '/../templates/fonts/Granville_Italic.otf';
+    } else {
+        $fontPath = __DIR__ . '/../templates/fonts/Granville.otf';
+    }
+
+    $canUseTtf = function_exists('imagettftext') && file_exists($fontPath);
+
+    $imageWidth = imagesx($image);
+
+    if ($canUseTtf) {
+        $bbox = imagettfbbox($fontSize, 0, $fontPath, $text);
+        $textWidth = $bbox[2] - $bbox[0];
+        $textHeight = $bbox[1] - $bbox[7];
+        $x = (int) (($imageWidth - $textWidth) / 2);
+        
+        $padding = 20;
+        $radius = 15;
+        $bgX1 = $x - $padding;
+        $bgY1 = $y - $textHeight - $padding;
+        $bgX2 = $x + $textWidth + $padding;
+        $bgY2 = $y + $padding;
+        
+        $bgColor = imagecolorallocate($image, $bgColorRgb[0], $bgColorRgb[1], $bgColorRgb[2]);
+        
+        imagefilledrectangle($image, $bgX1 + $radius, $bgY1, $bgX2 - $radius, $bgY2, $bgColor);
+        imagefilledrectangle($image, $bgX1, $bgY1 + $radius, $bgX2, $bgY2 - $radius, $bgColor);
+        
+        imagefilledarc($image, $bgX1 + $radius, $bgY1 + $radius, $radius * 2, $radius * 2, 180, 270, $bgColor, IMG_ARC_PIE);
+        imagefilledarc($image, $bgX2 - $radius, $bgY1 + $radius, $radius * 2, $radius * 2, 270, 360, $bgColor, IMG_ARC_PIE);
+        imagefilledarc($image, $bgX1 + $radius, $bgY2 - $radius, $radius * 2, $radius * 2, 90, 180, $bgColor, IMG_ARC_PIE);
+        imagefilledarc($image, $bgX2 - $radius, $bgY2 - $radius, $radius * 2, $radius * 2, 0, 90, $bgColor, IMG_ARC_PIE);
+        
+        imagettftext($image, $fontSize, 0, $x, $y, $textColor, $fontPath, $text);
+    }
 }
 
 /**

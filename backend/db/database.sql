@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS reservations (
     time TIME NOT NULL,
     guests INT NOT NULL DEFAULT 1,
     table_preference VARCHAR(100) NOT NULL DEFAULT 'Window Table',
+    table_color ENUM('Purple', 'Cyan', 'Orange', 'Cream', 'White') NOT NULL DEFAULT 'White',
     status ENUM('pending', 'confirmed', 'cancelled') NOT NULL DEFAULT 'pending',
     special_requests TEXT,
     qr_code VARCHAR(255),
