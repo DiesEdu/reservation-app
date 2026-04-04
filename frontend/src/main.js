@@ -10,9 +10,9 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 
 const app = createApp(App)
 
-document.addEventListener('contextmenu', function (e) {
-  e.preventDefault()
-})
+// document.addEventListener('contextmenu', function (e) {
+//   e.preventDefault()
+// })
 
 app.use(createPinia())
 app.use(router)

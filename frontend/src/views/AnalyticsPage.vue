@@ -157,7 +157,6 @@
                             </div>
                             <div class="customer-info">
                               <span class="customer-name">{{ reservation.name }}</span>
-                              <span class="customer-company">{{ reservation.company || '-' }}</span>
                             </div>
                           </div>
                         </td>
@@ -326,6 +325,8 @@ import { useReservationStore } from '../stores/reservations'
 import { useAuthStore } from '../stores/auth'
 import QRCode from 'qrcode'
 import Navbar from '../components/Navbar.vue'
+import LogoIForte from '/new-iforte_white.png';
+import granville from '@/assets/fonts/Granville.otf';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
@@ -500,6 +501,7 @@ const clearFilters = () => {
 
 const showPopupManualVerification = async (reservationId) => {
   const found = tableData.value.find((item) => item.id === reservationId)
+  console.log("---selected data reservation: " + JSON.stringify(found));
   if (!found) return
 
   selectedReservation.value = found
@@ -579,6 +581,17 @@ const updateLocalReservation = (updated) => {
   selectedReservation.value = tableData.value.find((item) => item.id === updated.id)
 }
 
+const convertToDataURL = async (url) => {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
 const generateQRCode = async (reservation) => {
   selectedReservation.value = reservation
   const qrData =
@@ -605,18 +618,26 @@ const printTicket = async () => {
   qrCodeDataUrl.value = ''
   await generateQRCode(res)
 
+  const fontGranville = await convertToDataURL(granville);
+
   const html = `
     <html>
       <head>
         <title>Reservation Ticket</title>
         <style>
+          @font-face {
+            font-family: 'granville';
+            src: url('${fontGranville}') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+          }
           @page {
             size: 48mm 88mm;
             margin: 0;
           }
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'SkySansBlack', 'Arial', sans-serif;
             width: 48mm;
             height: 88mm;
             color: #0f172a;
@@ -635,6 +656,16 @@ const printTicket = async () => {
             text-align: center;
           }
           .title {
+            font-family: 'granville', 'Arial', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2mm;
+            color: #000;
+          }
+          .subtitle {
+            font-family: 'granville', 'Arial', sans-serif;
             font-size: 10px;
             font-weight: 700;
             text-transform: uppercase;
@@ -646,24 +677,27 @@ const printTicket = async () => {
             margin: 1mm 0 2mm;
           }
           .qr img {
-            width: 36mm;
-            height: 36mm;
+            width: 24mm;
+            height: 24mm;
           }
           .table-num {
-            font-size: 16px;
+            font-family: 'granville', 'Arial', sans-serif;
+            font-size: 54px;
             font-weight: 800;
             margin-bottom: 1mm;
             color: #0a0a0a;
           }
           .table-label {
+            font-family: 'granville', 'Arial', sans-serif;
             font-size: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #666;
-            margin-bottom: 2mm;
+            color: #333;
+            margin-bottom: 0;
           }
           .name {
-            font-size: 10px;
+            font-family: 'granville', 'Arial', sans-serif;
+            font-size: 15px;
             font-weight: 600;
             color: #333;
             white-space: nowrap;
@@ -671,15 +705,48 @@ const printTicket = async () => {
             text-overflow: ellipsis;
             max-width: 100%;
           }
+          .company {
+            font-family: 'granville', 'Arial', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+          }
+          .position {
+            font-family: 'granville', 'Arial', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+          }
+          .logo-iforte {
+            height: 25px;
+            margin-bottom: 5mm;
+          }
+          .logo-iforte img {
+            height: 100%;
+            width: auto;
+          }
         </style>
       </head>
       <body>
         <div class="ticket">
-          <div class="title">Reservation Ticket</div>
-          <div class="qr"><img src="${qrCodeDataUrl.value || ''}" alt="QR Code" /></div>
+          <div class="title">Halal Bihalal</div>
+          <div class="subtitle">Connected in Harmony</div>
+          <div class="logo-iforte">
+            <img src=${LogoIForte} alt="Logo iForte" />
+          </div>
           <div class="table-label">Table</div>
           <div class="table-num">${res.table || '-'}</div>
           <div class="name">${res.name}</div>
+          <div class="company">${res.company}</div>
+          <div class="position">${res.position}</div>
         </div>
       </body>
     </html>

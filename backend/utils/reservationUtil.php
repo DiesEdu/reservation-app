@@ -120,10 +120,7 @@ function buildReservationTicketImage(array $reservation)
     $width = imagesx($image);
     $height = imagesy($image);
 
-    $fontPathCustom = __DIR__ . '/../templates/fonts/IBMPlexSerif-Regular.ttf';
-
-    $fontPath = resolveTicketFont();
-    $canUseTtf = $fontPath && function_exists('imagettftext');
+    $fontPathCustom = __DIR__ . '/../templates/fonts/Granville.otf';
 
     $textColor = imagecolorallocate($image, 20, 20, 20);
     $shadowColor = imagecolorallocatealpha($image, 255, 255, 255, 80);
@@ -135,39 +132,21 @@ function buildReservationTicketImage(array $reservation)
     $table = $reservation['table_preference'];
     $qrData = $reservation['qr_code'];
 
-    $nameSize = max(28, (int) ($width * 0.035));
-    $positionSize = max(20, (int) ($width * 0.025));
-    $companySize = max(20, (int) ($width * 0.035));
-    $tableTitleSize = max(20, (int) ($width * 0.025));
-    $tableSize = max(22, (int) ($width * 0.025));
-
     // Vertical layout: name -> QR -> table
     $nameY = (int) ($height * 0.74);
-    $companyY = (int) ($height * 0.79);
-    $positionY = (int) ($height * 0.82);
+    $positionY = (int) ($height * 0.77);
+    $companyY = (int) ($height * 0.80);
     $qrGapBottom = (int) ($height * 0.03);
     $tableTitleY = null;
     $tableY = null; // set after QR position is known
 
-    if ($canUseTtf) {
-        drawCenteredTtfText($image, $nameSize, $nameY, $fontPath, $name, $textColor, $shadowColor);
-    } else {
-        drawCenteredGdText($image, $fontPathCustom, 15, $nameY, strtoupper($name), $textColor, false, true);
-    }
+    drawCenteredGdText($image, $fontPathCustom, 15, $nameY, strtoupper($name), $textColor, false, true);
 
     // Draw position if available
-    if ($canUseTtf) {
-        drawCenteredTtfText($image, $positionSize, $positionY, $fontPath, $position, $textColor, $shadowColor, true);
-    } else {
-        drawCenteredGdText($image, $fontPathCustom, 10, $positionY, strtoupper($position), $textColor, true);
-    }
+    drawCenteredGdText($image, $fontPathCustom, 15, $positionY, strtoupper($position), $textColor, false, true);
 
     // Draw company if available
-    if ($canUseTtf && !empty($company)) {
-        drawCenteredTtfText($image, $companySize, $companyY, $fontPath, $company, $textColor, $shadowColor);
-    } elseif (!empty($company)) {
-        drawCenteredGdText($image, $fontPathCustom, 10, $companyY, strtoupper($company), $textColor);
-    }
+    drawCenteredGdText($image, $fontPathCustom, 15, $companyY, strtoupper($company), $textColor, false, true);
 
     // Add QR code (uses reservation.qr_code value)
     if (!empty($qrData)) {
@@ -204,43 +183,11 @@ function buildReservationTicketImage(array $reservation)
         $tableY = $nameY + (int) ($height * 0.12);
     }
 
-    if ($canUseTtf) {
-        drawCenteredTtfText($image, $tableTitleSize, $tableTitleY, $fontPath, $table, $textColor, $shadowColor, true);
-    } else {
-        drawCenteredGdText($image, $fontPathCustom, 15, $tableTitleY, strtoupper($tableTitle), $textColor, true);
-    }
+    drawCenteredGdText($image, $fontPathCustom, 15, $tableTitleY, strtoupper($tableTitle), $textColor, true);
 
-    if ($canUseTtf) {
-        drawCenteredTtfText($image, $tableSize, $tableY, $fontPath, $table, $textColor, $shadowColor);
-    } else {
-        drawCenteredGdText($image, $fontPathCustom, 45, $tableY, strtoupper($table), $textColor);
-    }
+    drawCenteredGdText($image, $fontPathCustom, 45, $tableY, strtoupper($table), $textColor);
 
     return $image;
-}
-
-/**
- * Try to find an available TTF font on the host
- */
-function resolveTicketFont()
-{
-    return null;
-}
-
-/**
- * Draw centered TTF text with a subtle shadow
- */
-function drawCenteredTtfText($image, $fontSize, $y, $fontPath, $text, $color, $shadowColor, $italic = false)
-{
-    $width = imagesx($image);
-    $angle = $italic ? -12 : 0; // Use negative angle for italic effect
-    $bbox = imagettfbbox($fontSize, $angle, $fontPath, $text);
-    $textWidth = $bbox[2] - $bbox[0];
-    $x = (int) (($width - $textWidth) / 2);
-
-    // Shadow for readability on busy backgrounds
-    imagettftext($image, $fontSize, $angle, $x + 2, $y + 2, $shadowColor, $fontPath, $text);
-    imagettftext($image, $fontSize, $angle, $x, $y, $color, $fontPath, $text);
 }
 
 /**
@@ -249,11 +196,11 @@ function drawCenteredTtfText($image, $fontSize, $y, $fontPath, $text, $color, $s
 function drawCenteredGdText($image, $fontPath, $fontSize, $y, $text, $color, $isItalic = false, $isBold = false)
 {
     if ($isBold) {
-    $fontPath = __DIR__ . '/../templates/fonts/IBMPlexSerif-Bold.ttf';
+    $fontPath = __DIR__ . '/../templates/fonts/Granville_Bold.otf';
 } elseif ($isItalic) {
-    $fontPath = __DIR__ . '/../templates/fonts/IBMPlexSerif-Italic.ttf';
+    $fontPath = __DIR__ . '/../templates/fonts/Granville_Italic.otf';
 } else {
-    $fontPath = __DIR__ . '/../templates/fonts/IBMPlexSerif-Regular.ttf';
+    $fontPath = __DIR__ . '/../templates/fonts/Granville.otf';
 }
 
     $canUseTtf = function_exists('imagettftext') && file_exists($fontPath);
@@ -282,18 +229,6 @@ function drawCenteredGdText($image, $fontPath, $fontSize, $y, $text, $color, $is
         $yPos = $y - imagefontheight($font);
         imagestring($image, $font, $x, $yPos, $text, $color);
     }
-}
-
-/**
- * Draw lefted TTF text fallback
- */
-function drawLeftedTtfText($image, $fontSize, $xVal, $y, $fontPath, $text, $color, $shadowColor)
-{
-    $angle = 0;
-    $x = (int) ($xVal);
-
-    imagettftext($image, $fontSize, $angle, $x + 2, $y + 2, $shadowColor, $fontPath, $text);
-    imagettftext($image, $fontSize, $angle, $x, $y, $color, $fontPath, $text);
 }
 
 /**

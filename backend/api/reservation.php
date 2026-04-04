@@ -159,6 +159,8 @@ function getReservations()
             return [
                 'id' => (int) $res['id'],
                 'name' => $res['name'],
+                'company' => $res['company'],
+                'position' => $res['position'],
                 'email' => $res['email'],
                 'phone' => $res['phone'],
                 'date' => $res['date'],
