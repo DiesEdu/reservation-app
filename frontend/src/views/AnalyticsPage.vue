@@ -446,6 +446,10 @@ const fetchTableData = async () => {
       if (data.pagination?.page) {
         currentPage.value = data.pagination.page
       }
+      
+      if (searchQuery.value) {
+        saveSearchForSSE(searchQuery.value)
+      }
     } else {
       tableError.value = data.error || 'Failed to load reservations'
     }
@@ -454,6 +458,20 @@ const fetchTableData = async () => {
     console.error('Error loading reservations:', err)
   } finally {
     tableLoading.value = false
+  }
+}
+
+const saveSearchForSSE = async (query) => {
+  if (!query || query.length < 2) return
+  
+  try {
+    await fetch(`${API_URL}/save-search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ search: query })
+    })
+  } catch (err) {
+    console.error('Failed to save search for SSE:', err)
   }
 }
 

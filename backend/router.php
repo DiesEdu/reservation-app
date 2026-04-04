@@ -7,24 +7,32 @@
 // Get the request URI and remove query strings
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
+// Latest search poll endpoint
+if ($uri === '/api/get-latest-search') {
+    require __DIR__ . '/api/get-latest-search.php';
+    return true;
+}
+
+// Save search endpoint
+if ($uri === '/api/save-search') {
+    require __DIR__ . '/api/save-search.php';
+    return true;
+}
+
 // Route to api files based on path
 if (strpos($uri, '/api/auth') === 0) {
-    // Route to auth API
     require __DIR__ . '/api_auth.php';
     return true;
 } elseif (strpos($uri, '/api/user') === 0) {
-    // Route to user profile API (wishlist, etc)
     require __DIR__ . '/api/user_profile.php';
     return true;
 } elseif (strpos($uri, '/api/users') === 0) {
-    // Route to user management API
     require __DIR__ . '/api/user.php';
     return true;
-} elseif (strpos($uri, '/api/blast-info-email') === 0 || strpos($uri, '/api/blast-info-wa') === 0 || strpos($uri, '/api/blast-info-generate') === 0) {
+} elseif (strpos($uri, '/api/blast-info-') === 0) {
     require __DIR__ . '/api/blast_information.php';
     return true;
-} elseif (strpos($uri, '/api/reservations') === 0 || strpos($uri, '/api') === 0) {
-    // Route to reservations API
+} elseif (strpos($uri, '/api/reservations') === 0 || $uri === '/api') {
     require __DIR__ . '/api/reservation.php';
     return true;
 }
