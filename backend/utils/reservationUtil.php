@@ -228,12 +228,13 @@ function drawCenteredGdTextWithBackground($image, $fontPath, $fontSize, $y, $tex
         $textWidth = $bbox[2] - $bbox[0];
         $textHeight = $bbox[1] - $bbox[7];
         $x = (int) (($imageWidth - $textWidth) / 2);
+        $widthBg = 360;
         
         $padding = 20;
         $radius = 15;
-        $bgX1 = $x - $padding;
+        $bgX1 = (($imageWidth / 2) - $widthBg);
         $bgY1 = $y - $textHeight - $padding;
-        $bgX2 = $x + $textWidth + $padding;
+        $bgX2 = (($imageWidth / 2) + $widthBg);
         $bgY2 = $y + $padding;
         
         $bgColor = imagecolorallocate($image, $bgColorRgb[0], $bgColorRgb[1], $bgColorRgb[2]);
