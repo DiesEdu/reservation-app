@@ -289,26 +289,28 @@
 
               <div class="modal-actions">
                 <button
+                  v-if="!verificationDetails?.verified"
                   class="btn-outline"
                   @click="checkVerificationStatus(selectedReservation.qrCode)"
                   :disabled="verificationLoading"
                 >
                   <i v-if="verificationLoading" class="bi bi-arrow-repeat spinner"></i>
                   <i v-else class="bi bi-arrow-clockwise"></i>
-                  Recheck
+                  <span>Recheck</span>
                 </button>
                 <button
+                  v-if="!verificationDetails?.verified"
                   class="btn-primary"
-                  @click="confirmManualVerification"
-                  :disabled="verificationLoading || verificationDetails?.verified"
+                  @click="async () => { await confirmManualVerification(); printTicket(); }"
+                  :disabled="verificationLoading"
                 >
                   <i v-if="verificationLoading" class="bi bi-hourglass-split spinner"></i>
                   <i v-else class="bi bi-check-circle"></i>
-                  Mark as Verified
+                  <span>Verify</span>
                 </button>
-                <button class="btn-secondary" @click="printTicket" :disabled="!selectedReservation">
+                <button v-if="verificationDetails?.verified" class="btn-secondary" @click="printTicket" :disabled="!selectedReservation">
                   <i class="bi bi-printer"></i>
-                  Print Ticket
+                  <span>Print Ticket</span>
                 </button>
               </div>
             </div>
@@ -325,7 +327,6 @@ import { useReservationStore } from '../stores/reservations'
 import { useAuthStore } from '../stores/auth'
 import QRCode from 'qrcode'
 import Navbar from '../components/Navbar.vue'
-import LogoIForte from '/new-iforte_white.png';
 import granville from '@/assets/fonts/Granville.otf';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
@@ -446,7 +447,7 @@ const fetchTableData = async () => {
       if (data.pagination?.page) {
         currentPage.value = data.pagination.page
       }
-      
+
       if (searchQuery.value) {
         saveSearchForSSE(searchQuery.value)
       }
@@ -463,7 +464,7 @@ const fetchTableData = async () => {
 
 const saveSearchForSSE = async (query) => {
   if (!query || query.length < 2) return
-  
+
   try {
     await fetch(`${API_URL}/save-search`, {
       method: 'POST',
@@ -572,7 +573,7 @@ const confirmManualVerification = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         qrCode: selectedReservation.value.qrCode,
-        method: 'admin_manual',
+        method: 'manual_entry',
       }),
     })
     const result = await response.json()
@@ -583,6 +584,7 @@ const confirmManualVerification = async () => {
     verificationDetails.value = result.data
     verificationSuccess.value = result.message || 'Reservation verified successfully'
     updateLocalReservation(result.data)
+    store.fetchReservations();
   } catch (err) {
     verificationError.value = err.message || 'Failed to verify reservation'
   } finally {
@@ -650,14 +652,14 @@ const printTicket = async () => {
             font-style: normal;
           }
           @page {
-            size: 48mm 88mm;
+            size: 50mm 30mm;
             margin: 0;
           }
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
             font-family: 'SkySansBlack', 'Arial', sans-serif;
-            width: 48mm;
-            height: 88mm;
+            width: 50mm;
+            height: 30mm;
             color: #0f172a;
             display: flex;
             align-items: center;
@@ -666,48 +668,22 @@ const printTicket = async () => {
           .ticket {
             width: 100%;
             height: 100%;
-            padding: 4mm 3mm;
+            padding: 0.5mm 0.5mm;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
           }
-          .title {
-            font-family: 'granville', 'Arial', sans-serif;
-            font-size: 15px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2mm;
-            color: #000;
-          }
-          .subtitle {
-            font-family: 'granville', 'Arial', sans-serif;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2mm;
-            color: #333;
-          }
-          .qr {
-            margin: 1mm 0 2mm;
-          }
-          .qr img {
-            width: 24mm;
-            height: 24mm;
-          }
           .table-num {
             font-family: 'granville', 'Arial', sans-serif;
-            font-size: 54px;
+            font-size: 36px;
             font-weight: 800;
-            margin-bottom: 1mm;
             color: #0a0a0a;
           }
           .table-label {
             font-family: 'granville', 'Arial', sans-serif;
-            font-size: 8px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: #333;
@@ -715,37 +691,31 @@ const printTicket = async () => {
           }
           .name {
             font-family: 'granville', 'Arial', sans-serif;
-            font-size: 15px;
+            font-size: 12px;
             font-weight: 600;
             color: #333;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
+            white-space: normal;
+            word-wrap: break-word;
           }
           .company {
             font-family: 'granville', 'Arial', sans-serif;
             font-size: 12px;
             font-weight: 600;
             color: #333;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
+            white-space: normal;
+            word-wrap: break-word;
           }
           .position {
             font-family: 'granville', 'Arial', sans-serif;
             font-size: 12px;
             font-weight: 600;
             color: #333;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
+            white-space: normal;
+            word-wrap: break-word;
           }
           .logo-iforte {
-            height: 25px;
-            margin-bottom: 5mm;
+            height: 12px;
+            margin-bottom: 2mm;
           }
           .logo-iforte img {
             height: 100%;
@@ -755,16 +725,11 @@ const printTicket = async () => {
       </head>
       <body>
         <div class="ticket">
-          <div class="title">Halal Bihalal</div>
-          <div class="subtitle">Connected in Harmony</div>
-          <div class="logo-iforte">
-            <img src=${LogoIForte} alt="Logo iForte" />
-          </div>
           <div class="table-label">Table</div>
           <div class="table-num">${res.table || '-'}</div>
-          <div class="name">${res.name}</div>
-          <div class="company">${res.company}</div>
-          <div class="position">${res.position}</div>
+          <div class="name" style="${((res.name?.length || 0) > 28 || (res.company?.length || 0) > 28 || (res.position?.length || 0) > 28) ? 'font-size: 9px;' : ''}">${res.name}</div>
+          <div class="company" style="${((res.name?.length || 0) > 28 || (res.company?.length || 0) > 28 || (res.position?.length || 0) > 28) ? 'font-size: 9px;' : ''}">${res.company}</div>
+          <div class="position" style="${((res.name?.length || 0) > 28 || (res.company?.length || 0) > 28 || (res.position?.length || 0) > 28) ? 'font-size: 9px;' : ''}">${res.position}</div>
         </div>
       </body>
     </html>
@@ -1981,6 +1946,11 @@ const summaryStats = computed(() => {
   }
   .filter-group {
     flex-wrap: wrap;
+  }
+  .modal-actions .btn-outline span,
+  .modal-actions .btn-primary span,
+  .modal-actions .btn-secondary span {
+    display: none;
   }
 }
 </style>

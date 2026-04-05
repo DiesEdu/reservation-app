@@ -2,13 +2,6 @@
   <nav class="navbar navbar-expand-lg fixed-top">
     <div class="container">
       <router-link class="navbar-brand d-flex align-items-center" to="/">
-        <!-- <div class="logo-icon me-3">
-          <i class="bi bi-gem"></i>
-        </div>
-        <div class="brand-text">
-          <span class="brand-main">RESONANZ</span>
-          <span class="brand-sub">RESERVE</span>
-        </div> -->
         <div class="logo-icon me-3">
           <img src="/new-iforte.png" alt="Logo" class="logo-image" />
         </div>
@@ -44,13 +37,7 @@
             </template>
             <!-- If authenticated, show user name and confirmation button -->
             <template v-else>
-              <div class="d-flex align-items-center gap-2">
-                <router-link to="/confirm-scanner" class="btn btn-gold btn-sm">
-                  <i class="bi bi-check2-circle me-2"></i>QR Scanner
-                </router-link>
-                <router-link to="/confirm-camera" class="btn btn-gold btn-sm">
-                  <i class="bi bi-check2-circle me-2"></i>Camera
-                </router-link>
+              <div class="d-flex align-items-center justify-content-center mt-2">
                 <div class="dropdown">
                   <button
                     class="btn btn-sm dropdown-toggle user-menu-btn"
@@ -64,6 +51,15 @@
                     <li>
                       <span class="dropdown-item-text user-email">{{ userEmail }}</span>
                     </li>
+                    <li><hr class="dropdown-divider" /></li>
+                    <div class="d-flex flex-column align-items-center justify-content-center gap-2 mt-2">
+                      <router-link to="/confirm-scanner" class="btn btn-gold btn-sm">
+                        <i class="bi bi-check2-circle me-2"></i>QR Scanner
+                      </router-link>
+                      <router-link to="/confirm-camera" class="btn btn-gold btn-sm">
+                        <i class="bi bi-check2-circle me-2"></i>Camera
+                      </router-link>
+                    </div>
                     <li><hr class="dropdown-divider" /></li>
                     <li>
                       <router-link to="/profile" class="dropdown-item">
