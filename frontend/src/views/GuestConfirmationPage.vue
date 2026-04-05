@@ -99,8 +99,52 @@
             <p>Waiting for search from staff...</p>
           </div>
 
+          <!-- Verified Confirmation Section -->
+          <div v-else-if="isVerified && results.length > 0" class="verified-section">
+            <div class="verified-card">
+              <div class="verified-header">
+                <div class="checkmark-circle">
+                  <i class="bi bi-check-lg"></i>
+                </div>
+                <h2>Reservation Confirmed!</h2>
+                <p class="verified-subtitle">Your table is ready</p>
+              </div>
+              
+              <div class="verified-details">
+                <div v-for="guest in results" :key="guest.id" class="guest-info">
+                  <div class="table-highlight">
+                    <span class="table-label">Table</span>
+                    <span class="table-value">{{ guest.table_preference || '-' }}</span>
+                  </div>
+                  <div class="guest-name">
+                    <span class="name-label">Guest</span>
+                    <span class="name-value">{{ guest.name }}</span>
+                  </div>
+                  <div v-if="guest.company" class="guest-company">
+                    <span class="name-label">Company</span>
+                    <span class="subname-value">{{ guest.company }}</span>
+                  </div>
+                  <div v-if="guest.position" class="guest-position">
+                    <span class="name-label">Position</span>
+                    <span class="subname-value">{{ guest.position }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="success-message">
+                <i class="bi bi-stars"></i>
+                <span>We're excited to welcome you!</span>
+              </div>
+            </div>
+
+            <div class="countdown-timer">
+              <i class="bi bi-clock-history"></i>
+              <span>Returning in <strong>{{ countdown }}</strong> seconds</span>
+            </div>
+          </div>
+
           <!-- Waiting State -->
-          <div v-else-if="!searchQuery" class="waiting-state">
+          <div v-else-if="!searchQuery && !isVerified" class="waiting-state">
             <div class="waiting-animation">
               <i class="bi bi-person-badge"></i>
             </div>
@@ -136,9 +180,13 @@ const lastPollTime = ref(0)
 const connectionStatus = ref('Connecting...')
 
 // Email filter for selecting which user's search to view
-const userEmail = ref('')
 const users = ref([])
 const selectedEmail = ref('')
+
+// Verified state for showing reservation details
+const isVerified = ref(false)
+const countdown = ref(0)
+const countdownInterval = ref(null)
 
 // Fetch user list for dropdown
 const fetchUsers = async () => {
@@ -162,23 +210,62 @@ const pollForResults = async () => {
     }
     const response = await fetch(url)
     const data = await response.json()
-    
+
     // Mark as connected if we get any response (even empty)
     isConnected.value = true
     connectionStatus.value = 'Live'
-    
+
+    // If no search data (cleaned after 1 minute), clear local state
+    if (!data.search || data.search === '') {
+      if (searchQuery.value !== '') {
+        searchQuery.value = ''
+        results.value = []
+        lastPollTime.value = 0
+        isVerified.value = false
+      }
+      return
+    }
+
     if (data.success && data.search && data.search !== lastPollTime.value) {
       lastPollTime.value = data.search
       searchQuery.value = data.search
       results.value = data.results || []
       lastUpdate.value = new Date()
       isLoading.value = false
+
+      // Check if verified is true
+      if (data.verified === true) {
+        isVerified.value = true
+        startCountdown()
+      }
     }
   } catch (err) {
     console.error('Polling error:', err)
     isConnected.value = false
     connectionStatus.value = 'Reconnecting...'
   }
+}
+
+const startCountdown = () => {
+  countdown.value = 5
+  if (countdownInterval.value) {
+    clearInterval(countdownInterval.value)
+  }
+  countdownInterval.value = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      clearInterval(countdownInterval.value)
+      resetToInitial()
+    }
+  }, 1000)
+}
+
+const resetToInitial = () => {
+  isVerified.value = false
+  searchQuery.value = ''
+  results.value = []
+  lastPollTime.value = 0
+  lastUpdate.value = null
 }
 
 const startPolling = () => {
@@ -205,6 +292,9 @@ onMounted(async () => {
 onUnmounted(() => {
   if (pollInterval.value) {
     clearInterval(pollInterval.value)
+  }
+  if (countdownInterval.value) {
+    clearInterval(countdownInterval.value)
   }
 })
 </script>
@@ -600,6 +690,142 @@ onUnmounted(() => {
   line-height: 1.5;
 }
 
+/* Verified Confirmation Section */
+.verified-section {
+  text-align: center;
+}
+
+.verified-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15);
+  border: 2px solid #22c55e;
+}
+
+.verified-header {
+  margin-bottom: 1.5rem;
+}
+
+.checkmark-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.checkmark-circle i {
+  font-size: 2rem;
+  color: #ffffff;
+}
+
+.verified-header h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--primary-dark, #0f172a);
+  margin: 0 0 0.5rem;
+}
+
+.verified-subtitle {
+  color: #64748b;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.verified-details {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.guest-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.table-highlight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.table-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table-value {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--primary-dark, #0f172a);
+}
+
+.guest-name, .guest-company, .guest-position {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.name-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.name-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-dark, #0f172a);
+}
+
+.subname-value {
+  font-size: 1.1rem;
+  color: #64748b;
+}
+
+.success-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #15803d;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.success-message i {
+  font-size: 1.3rem;
+}
+
+.countdown-timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.countdown-timer i {
+  color: var(--primary, #1f4fa3);
+}
+
+.countdown-timer strong {
+  color: var(--primary, #1f4fa3);
+}
+
 .container {
   padding: 0 1.5rem;
 }
@@ -608,16 +834,16 @@ onUnmounted(() => {
   .guest-title {
     font-size: 1.6rem;
   }
-  
+
   .guest-card {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .guest-meta {
     justify-content: center;
   }
-  
+
   .guest-verified {
     text-align: center;
   }

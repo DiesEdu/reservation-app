@@ -23,17 +23,26 @@ $pdo = $db->getConnection();
 $emailFilter = isset($_GET['email']) ? trim($_GET['email']) : '';
 
 try {
+    // Clean up old sse_events older than 1 minute for the specific email
+    if (!empty($emailFilter)) {
+        $cleanupStmt = $pdo->prepare("DELETE FROM sse_events WHERE user_email = ? AND created_at < DATE_SUB(NOW(), INTERVAL 1 MINUTE)");
+        $cleanupStmt->execute([$emailFilter]);
+    } else {
+        $pdo->query("DELETE FROM sse_events WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 MINUTE)");
+    }
+
     // Build query based on whether email filter is provided
     if (!empty($emailFilter)) {
-        $stmt = $pdo->prepare("SELECT search_query, user_email FROM sse_events WHERE user_email = ? ORDER BY id DESC LIMIT 1");
+        $stmt = $pdo->prepare("SELECT search_query, user_email, verified FROM sse_events WHERE user_email = ? ORDER BY id DESC LIMIT 1");
         $stmt->execute([$emailFilter]);
     } else {
-        $stmt = $pdo->query("SELECT search_query, user_email FROM sse_events ORDER BY id DESC LIMIT 1");
+        $stmt = $pdo->query("SELECT search_query, user_email, verified FROM sse_events ORDER BY id DESC LIMIT 1");
     }
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     
     $searchQuery = $row['search_query'] ?? '';
     $userEmail = $row['user_email'] ?? '';
+    $verified = ($row['verified'] ?? 0) == 1;
     
     if (empty($searchQuery)) {
         echo json_encode([
@@ -60,6 +69,7 @@ try {
         'success' => true,
         'search' => $searchQuery,
         'user_email' => $userEmail,
+        'verified' => $verified,
         'results' => $reservations,
         'count' => count($reservations)
     ]);

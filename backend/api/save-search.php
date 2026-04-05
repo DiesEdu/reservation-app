@@ -19,6 +19,7 @@ require_once __DIR__ . '/../db.php';
 $input = json_decode(file_get_contents('php://input'), true);
 $searchQuery = isset($input['search']) ? trim($input['search']) : '';
 $userEmail = isset($input['email']) ? trim($input['email']) : '';
+$verified = isset($input['verified']) ? intval($input['verified']) : 0;
 
 if (empty($searchQuery)) {
     http_response_code(400);
@@ -33,16 +34,21 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 
 try {
-    $stmt = $pdo->prepare("INSERT INTO sse_events (search_query, user_email) VALUES (?, ?)");
-    $stmt->execute([$searchQuery, $userEmail]);
+    $stmt = $pdo->prepare("INSERT INTO sse_events (search_query, user_email, verified) VALUES (?, ?, ?)");
+    $stmt->execute([$searchQuery, $userEmail, $verified]);
+
+    $insertedId = $pdo->lastInsertId();
 
     echo json_encode([
         'success' => true,
         'message' => 'Search query saved',
         'search' => $searchQuery,
-        'email' => $userEmail
+        'email' => $userEmail,
+        'verified' => $verified,
+        'insert_id' => $insertedId
     ]);
 } catch (PDOException $e) {
+    error_log("SSE save error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,

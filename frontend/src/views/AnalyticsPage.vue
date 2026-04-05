@@ -447,10 +447,6 @@ const fetchTableData = async () => {
       if (data.pagination?.page) {
         currentPage.value = data.pagination.page
       }
-
-      if (searchQuery.value) {
-        saveSearchForSSE(searchQuery.value)
-      }
     } else {
       tableError.value = data.error || 'Failed to load reservations'
     }
@@ -462,17 +458,27 @@ const fetchTableData = async () => {
   }
 }
 
-const saveSearchForSSE = async (query) => {
+// Save search to SSE after table data is loaded
+const saveSearchAfterFetch = () => {
+  if (searchQuery.value && searchQuery.value.length >= 2) {
+    saveSearchForSSE(searchQuery.value)
+  }
+}
+
+const saveSearchForSSE = async (query, verified = false) => {
   if (!query || query.length < 2) return
 
   const userEmail = authStore.user?.email || ''
+  console.log('Saving search to SSE:', { query, userEmail, verified, API_URL: `${API_URL}/save-search` })
 
   try {
-    await fetch(`${API_URL}/save-search`, {
+    const response = await fetch(`${API_URL}/save-search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ search: query, email: userEmail })
+      body: JSON.stringify({ search: query, email: userEmail, verified: verified })
     })
+    const result = await response.json()
+    console.log('SSE save response:', result)
   } catch (err) {
     console.error('Failed to save search for SSE:', err)
   }
@@ -482,6 +488,17 @@ const saveSearchForSSE = async (query) => {
 watch([searchQuery, statusFilter, tableFilter, verifiedFilter], () => {
   currentPage.value = 1
   fetchTableData()
+})
+
+// Watch search query to save to SSE after debounce
+let searchDebounceTimer = null
+watch(searchQuery, (newVal) => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  if (newVal && newVal.length >= 2) {
+    searchDebounceTimer = setTimeout(() => {
+      saveSearchForSSE(newVal)
+    }, 500)
+  }
 })
 
 // Refetch when page changes
@@ -586,7 +603,13 @@ const confirmManualVerification = async () => {
     verificationDetails.value = result.data
     verificationSuccess.value = result.message || 'Reservation verified successfully'
     updateLocalReservation(result.data)
-    store.fetchReservations();
+    store.fetchReservations()
+
+    // Save verified status to SSE events
+    const guestName = selectedReservation.value.name || ''
+    if (guestName) {
+      await saveSearchForSSE(guestName, true)
+    }
   } catch (err) {
     verificationError.value = err.message || 'Failed to verify reservation'
   } finally {
@@ -778,7 +801,7 @@ onMounted(async () => {
   } else {
     store.fetchReservations()
     store.fetchTableNames()
-    fetchTableData()
+    await fetchTableData()
     fetchSummary()
     fetchAnalytics()
   }
