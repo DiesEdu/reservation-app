@@ -19,12 +19,21 @@ require_once __DIR__ . '/../db.php';
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
+// Get optional email filter from query parameter
+$emailFilter = isset($_GET['email']) ? trim($_GET['email']) : '';
+
 try {
-    // Get the latest search query
-    $stmt = $pdo->query("SELECT search_query FROM sse_events ORDER BY id DESC LIMIT 1");
+    // Build query based on whether email filter is provided
+    if (!empty($emailFilter)) {
+        $stmt = $pdo->prepare("SELECT search_query, user_email FROM sse_events WHERE user_email = ? ORDER BY id DESC LIMIT 1");
+        $stmt->execute([$emailFilter]);
+    } else {
+        $stmt = $pdo->query("SELECT search_query, user_email FROM sse_events ORDER BY id DESC LIMIT 1");
+    }
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     
     $searchQuery = $row['search_query'] ?? '';
+    $userEmail = $row['user_email'] ?? '';
     
     if (empty($searchQuery)) {
         echo json_encode([
@@ -50,6 +59,7 @@ try {
     echo json_encode([
         'success' => true,
         'search' => $searchQuery,
+        'user_email' => $userEmail,
         'results' => $reservations,
         'count' => count($reservations)
     ]);

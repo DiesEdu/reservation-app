@@ -19,6 +19,12 @@ if ($uri === '/api/save-search') {
     return true;
 }
 
+// Get users list endpoint
+if ($uri === '/api/get-users') {
+    require __DIR__ . '/api/get-users.php';
+    return true;
+}
+
 // Route to api files based on path
 if (strpos($uri, '/api/auth') === 0) {
     require __DIR__ . '/api_auth.php';

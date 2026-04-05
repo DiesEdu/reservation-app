@@ -24,6 +24,24 @@
           </div>
         </div>
 
+        <!-- Email Filter -->
+        <div class="email-filter-card">
+          <label for="email-filter" class="filter-label">
+            <i class="bi bi-person-badge"></i>
+            Filter by Staff Email
+          </label>
+          <select
+            id="email-filter"
+            v-model="selectedEmail"
+            class="email-select"
+          >
+            <option value="">All Staff</option>
+            <option v-for="user in users" :key="user.id" :value="user.email">
+              {{ user.email }}
+            </option>
+          </select>
+        </div>
+
         <!-- Search Results Display -->
         <div class="results-section">
           <div v-if="searchQuery" class="search-info">
@@ -117,10 +135,32 @@ const pollInterval = ref(null)
 const lastPollTime = ref(0)
 const connectionStatus = ref('Connecting...')
 
+// Email filter for selecting which user's search to view
+const userEmail = ref('')
+const users = ref([])
+const selectedEmail = ref('')
+
+// Fetch user list for dropdown
+const fetchUsers = async () => {
+  try {
+    const response = await fetch(`${API_URL}/get-users`)
+    const data = await response.json()
+    if (data.success) {
+      users.value = data.data || []
+    }
+  } catch (err) {
+    console.error('Failed to fetch users:', err)
+  }
+}
+
 // Poll for search results
 const pollForResults = async () => {
   try {
-    const response = await fetch(`${API_URL}/get-latest-search`)
+    let url = `${API_URL}/get-latest-search`
+    if (selectedEmail.value) {
+      url += `?email=${encodeURIComponent(selectedEmail.value)}`
+    }
+    const response = await fetch(url)
     const data = await response.json()
     
     // Mark as connected if we get any response (even empty)
@@ -157,7 +197,8 @@ const formatTime = (date) => {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchUsers()
   startPolling()
 })
 
@@ -217,6 +258,45 @@ onUnmounted(() => {
   align-items: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   margin-bottom: 2rem;
+}
+
+.email-filter-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--primary-dark, #0f172a);
+  font-size: 0.95rem;
+}
+
+.email-select {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.65rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: var(--primary-dark, #0f172a);
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.email-select:focus {
+  outline: none;
+  border-color: var(--primary, #1f4fa3);
+  box-shadow: 0 0 0 3px rgba(31, 79, 163, 0.12);
 }
 
 .status-indicator {

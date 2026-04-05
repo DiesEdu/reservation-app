@@ -18,6 +18,7 @@ require_once __DIR__ . '/../db.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 $searchQuery = isset($input['search']) ? trim($input['search']) : '';
+$userEmail = isset($input['email']) ? trim($input['email']) : '';
 
 if (empty($searchQuery)) {
     http_response_code(400);
@@ -32,13 +33,14 @@ $db = Database::getInstance();
 $pdo = $db->getConnection();
 
 try {
-    $stmt = $pdo->prepare("INSERT INTO sse_events (search_query) VALUES (?)");
-    $stmt->execute([$searchQuery]);
+    $stmt = $pdo->prepare("INSERT INTO sse_events (search_query, user_email) VALUES (?, ?)");
+    $stmt->execute([$searchQuery, $userEmail]);
 
     echo json_encode([
         'success' => true,
         'message' => 'Search query saved',
-        'search' => $searchQuery
+        'search' => $searchQuery,
+        'email' => $userEmail
     ]);
 } catch (PDOException $e) {
     http_response_code(500);

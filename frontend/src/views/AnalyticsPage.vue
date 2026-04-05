@@ -465,11 +465,13 @@ const fetchTableData = async () => {
 const saveSearchForSSE = async (query) => {
   if (!query || query.length < 2) return
 
+  const userEmail = authStore.user?.email || ''
+
   try {
     await fetch(`${API_URL}/save-search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ search: query })
+      body: JSON.stringify({ search: query, email: userEmail })
     })
   } catch (err) {
     console.error('Failed to save search for SSE:', err)
