@@ -880,6 +880,7 @@ onUnmounted(() => {
   width: 100%;
   height: auto;
   display: block;
+  transform: scaleX(-1);
 }
 
 .btn-stop-scan {

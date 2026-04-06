@@ -40,13 +40,13 @@ function getReservationsBySearch($pdo, $search) {
     
     $pattern = '%' . $search . '%';
     $stmt = $pdo->prepare("
-        SELECT id, name, company, position, email, phone, table_preference, status, verified
+        SELECT id, name, company, position, sales_connection, table_preference, status, verified
         FROM reservations 
-        WHERE name LIKE ? OR email LIKE ? OR company LIKE ?
+        WHERE name LIKE ? OR company LIKE ?
         ORDER BY name ASC
         LIMIT 20
     ");
-    $stmt->execute([$pattern, $pattern, $pattern]);
+    $stmt->execute([$pattern, $pattern]);
     
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }

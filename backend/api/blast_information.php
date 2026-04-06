@@ -207,7 +207,7 @@ function createBlastInfo()
 
         // Fetch all reservations that have not been emailed yet
         $stmt = $pdo->prepare("
-            SELECT id, name, position, company, table_preference, qr_code, email
+            SELECT id, name, position, company, table_preference, qr_code, sales_connection
             FROM reservations
             WHERE send_email IS NULL OR send_email = ''
         ");
@@ -231,7 +231,12 @@ function createBlastInfo()
         $failed = [];
 
         foreach ($reservations as $reservation) {
-            $sent = sendInformationEmail($reservation['email'], $reservation['name'], $reservation['id']);
+            $salesConnection = $reservation['sales_connection'];
+            if (empty($salesConnection)) {
+                $failed[] = $reservation['id'];
+                continue;
+            }
+            $sent = sendInformationEmail($salesConnection, $reservation['name'], $reservation['id']);
 
             if ($sent) {
                 $updateStmt->execute([$reservation['id']]);
@@ -294,55 +299,14 @@ function createBlastInfoWhatsapp()
     $pdo = $db->getConnection();
 
     try {
-        $stmt = $pdo->prepare("
-            SELECT id, name, phone
-            FROM reservations
-            WHERE (send_whatsapp IS NULL) 
-              AND (phone IS NOT NULL AND phone <> '')
-        ");
-        $stmt->execute();
-        $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        if (!$reservations) {
-            http_response_code(200);
-            echo json_encode([
-                'success' => true,
-                'message' => 'No pending reservations to WhatsApp',
-                'sent' => 0,
-                'failed' => 0
-            ]);
-            return;
-        }
-
-        $updateStmt = $pdo->prepare("UPDATE reservations SET send_whatsapp = NOW() WHERE id = ?");
-
-        $sentCount = 0;
-        $failed = [];
-
-        foreach ($reservations as $reservation) {
-            $phone = normalizePhoneToE164($reservation['phone']);
-            if (!$phone) {
-                $failed[] = $reservation['id'];
-                continue;
-            }
-
-            $sent = sendInformationWhatsapp($phone, $reservation['name'], $reservation['id']);
-
-            if ($sent) {
-                $updateStmt->execute([$reservation['id']]);
-                $sentCount++;
-            } else {
-                $failed[] = $reservation['id'];
-            }
-        }
-
         http_response_code(200);
         echo json_encode([
             'success' => true,
-            'message' => 'Blast WhatsApp process completed',
-            'sent' => $sentCount,
-            'failed' => $failed
+            'message' => 'WhatsApp blast is disabled (phone column removed)',
+            'sent' => 0,
+            'failed' => 0
         ]);
+        return;
     } catch (PDOException $e) {
         http_response_code(500);
         echo json_encode([

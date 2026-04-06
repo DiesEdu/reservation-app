@@ -56,13 +56,13 @@ try {
     // Search for matching reservations
     $pattern = '%' . $searchQuery . '%';
     $searchStmt = $pdo->prepare("
-        SELECT id, name, company, position, email, phone, table_preference, status, verified
+        SELECT id, name, company, position, sales_connection, table_preference, status, verified
         FROM reservations 
-        WHERE name LIKE ? OR email LIKE ? OR company LIKE ?
+        WHERE name LIKE ? OR company LIKE ?
         ORDER BY name ASC
         LIMIT 20
     ");
-    $searchStmt->execute([$pattern, $pattern, $pattern]);
+    $searchStmt->execute([$pattern, $pattern]);
     $reservations = $searchStmt->fetchAll(PDO::FETCH_ASSOC);
     
     echo json_encode([

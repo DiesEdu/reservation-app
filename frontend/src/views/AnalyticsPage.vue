@@ -142,7 +142,6 @@
                           Customer
                           <i v-if="sortField === 'name'" :class="sortIcon"></i>
                         </th>
-                        <th>Contact</th>
                         <th>Table</th>
                         <th>Verified</th>
                         <th>Actions</th>
@@ -158,12 +157,6 @@
                             <div class="customer-info">
                               <span class="customer-name">{{ reservation.name }}</span>
                             </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div class="contact-cell">
-                            <span>{{ reservation.email }}</span>
-                            <span class="phone">{{ reservation.phone }}</span>
                           </div>
                         </td>
                         <td>{{ reservation.table }}</td>
@@ -541,7 +534,6 @@ const clearFilters = () => {
 
 const showPopupManualVerification = async (reservationId) => {
   const found = tableData.value.find((item) => item.id === reservationId)
-  console.log("---selected data reservation: " + JSON.stringify(found));
   if (!found) return
 
   selectedReservation.value = found
@@ -1007,6 +999,7 @@ const summaryStats = computed(() => {
   background: #ffffff;
   border: 1px solid var(--border);
   color: var(--primary-dark);
+  width: 100%;
   padding: 0.55rem 1rem;
   border-radius: 10px;
   font-size: 0.95rem;
