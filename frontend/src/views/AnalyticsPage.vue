@@ -159,7 +159,7 @@
                             </div>
                           </div>
                         </td>
-                        <td>{{ reservation.table }}</td>
+                        <td>{{ reservation.seatCode }}</td>
                         <td>
                           <span class="verified-badge" :class="{ verified: reservation.verified }">
                             <i
@@ -250,7 +250,7 @@
                 <div class="modal-info-grid">
                   <div>
                     <p class="label">Table</p>
-                    <p class="value">{{ selectedReservation.table || '-' }}</p>
+                    <p class="value">{{ selectedReservation.seatCode || '-' }}</p>
                   </div>
                   <div>
                     <p class="label">QR Code</p>
@@ -390,7 +390,7 @@ const tableResults = computed(() => {
   // Table filter (client-side exact match)
   if (tableFilter.value) {
     const tableQuery = tableFilter.value.toString().toLowerCase()
-    results = results.filter((r) => (r.table || '').toString().toLowerCase() === tableQuery)
+    results = results.filter((r) => (r.seatCode || '').toString().toLowerCase() === tableQuery)
   }
 
   // Sort results
@@ -694,7 +694,6 @@ const printTicket = async () => {
             width: 50mm;
             height: 30mm;
             margin-top: -5px;
-            margin-left: 10px;
             color: #0f172a;
             display: flex;
             align-items: center;
@@ -762,8 +761,7 @@ const printTicket = async () => {
       </head>
       <body>
         <div class="ticket">
-          <div class="table-label">Table</div>
-          <div class="table-num">${res.table || '-'}</div>
+          <div class="table-num">${res.seatCode || '-'}</div>
           <div class="name" style="${((res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30) ? 'font-size: 9px;' : ''}">${res.name}</div>
           <div class="position" style="${((res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30) ? 'font-size: 8px;' : ''}">${res.position}</div>
           <div class="company" style="${((res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30) ? 'font-size: 8px;' : ''}">${res.company}</div>

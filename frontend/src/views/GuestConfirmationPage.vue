@@ -71,9 +71,9 @@
                 <p v-if="guest.company" class="guest-company">{{ guest.company }}</p>
                 <p v-if="guest.position" class="guest-position">{{ guest.position }}</p>
                 <div class="guest-meta">
-                  <span v-if="guest.table_preference" class="table-badge">
+                  <span v-if="guest.seat_code" class="table-badge">
                     <i class="bi bi-grid-3x3-gap"></i>
-                    Table {{ guest.table_preference }}
+                    Table {{ guest.seat_code }}
                   </span>
                   <span class="status-badge" :class="guest.status">
                     {{ guest.status }}
@@ -109,12 +109,12 @@
                 <h2>Reservation Confirmed!</h2>
                 <p class="verified-subtitle">Your table is ready</p>
               </div>
-              
+
               <div class="verified-details">
                 <div v-for="guest in results" :key="guest.id" class="guest-info">
                   <div class="table-highlight">
                     <span class="table-label">Table</span>
-                    <span class="table-value">{{ guest.table_preference || '-' }}</span>
+                    <span class="table-value">{{ guest.seatCode || '-' }}</span>
                   </div>
                   <div class="guest-name">
                     <span class="name-label">Guest</span>
