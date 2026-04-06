@@ -41,7 +41,7 @@ const router = createRouter({
       name: 'analytics',
       component: AnalyticsPage,
       meta: {
-        title: 'Analytics - Luxe Reserve',
+        title: 'Analytics',
       },
     },
     {
@@ -49,7 +49,7 @@ const router = createRouter({
       name: 'login',
       component: LoginPage,
       meta: {
-        title: 'Login - Luxe Reserve',
+        title: 'Login',
         guest: true,
       },
     },
@@ -58,7 +58,7 @@ const router = createRouter({
       name: 'register',
       component: RegisterPage,
       meta: {
-        title: 'Register - Luxe Reserve',
+        title: 'Register',
         guest: true,
       },
     },
@@ -67,7 +67,7 @@ const router = createRouter({
       name: 'profile',
       component: ProfilePage,
       meta: {
-        title: 'My Profile - Luxe Reserve',
+        title: 'My Profile',
         requiresAuth: true,
       },
     },
@@ -76,15 +76,15 @@ const router = createRouter({
       name: 'verify-success',
       component: VerifySuccessPage,
       meta: {
-        title: 'Email Verified - Luxe Reserve',
+        title: 'Email Verified',
       },
     },
     {
-      path: '/guest-confirmation',
+      path: '/guest',
       name: 'guest-confirmation',
       component: GuestConfirmationPage,
       meta: {
-        title: 'Guest Confirmation - Luxe Reserve',
+        title: 'Guest Confirmation',
       },
     },
   ],
