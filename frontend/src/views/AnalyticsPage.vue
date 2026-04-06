@@ -328,6 +328,8 @@ import { useAuthStore } from '../stores/auth'
 import QRCode from 'qrcode'
 import Navbar from '../components/Navbar.vue'
 import granville from '@/assets/fonts/Granville.otf';
+import montserrat from '@/assets/fonts/Montserrat-VariableFont_wght.ttf';
+import cinzel from '@/assets/fonts/cinzel/Cinzel-Regular.otf';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
@@ -459,11 +461,11 @@ const fetchTableData = async () => {
 }
 
 // Save search to SSE after table data is loaded
-const saveSearchAfterFetch = () => {
-  if (searchQuery.value && searchQuery.value.length >= 2) {
-    saveSearchForSSE(searchQuery.value)
-  }
-}
+// const saveSearchAfterFetch = () => {
+//   if (searchQuery.value && searchQuery.value.length >= 2) {
+//     saveSearchForSSE(searchQuery.value)
+//   }
+// }
 
 const saveSearchForSSE = async (query, verified = false) => {
   if (!query || query.length < 2) return
@@ -664,6 +666,8 @@ const printTicket = async () => {
   await generateQRCode(res)
 
   const fontGranville = await convertToDataURL(granville);
+  const fontMontserrat = await convertToDataURL(montserrat);
+  const fontCinzel = await convertToDataURL(cinzel);
 
   const html = `
     <html>
@@ -676,15 +680,29 @@ const printTicket = async () => {
             font-weight: normal;
             font-style: normal;
           }
+          @font-face {
+            font-family: 'montserrat';
+            src: url('${fontMontserrat}') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+          }
+          @font-face {
+            font-family: 'cinzel';
+            src: url('${fontCinzel}') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+          }
           @page {
             size: 50mm 30mm;
             margin: 0;
           }
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
-            font-family: 'SkySansBlack', 'Arial', sans-serif;
+            font-family: 'granville', 'Arial', sans-serif;
             width: 50mm;
             height: 30mm;
+            margin-top: -5px;
+            margin-left: 10px;
             color: #0f172a;
             display: flex;
             align-items: center;
@@ -702,23 +720,25 @@ const printTicket = async () => {
           }
           .table-num {
             font-family: 'granville', 'Arial', sans-serif;
-            font-size: 36px;
+            font-size: 40px;
             font-weight: 800;
             color: #0a0a0a;
+            margin-top: -5px;
           }
           .table-label {
             font-family: 'granville', 'Arial', sans-serif;
             font-size: 10px;
-            text-transform: uppercase;
+            font-style: italic;
             letter-spacing: 0.5px;
             color: #333;
             margin-bottom: 0;
           }
           .name {
             font-family: 'granville', 'Arial', sans-serif;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
             color: #333;
+            margin-top: -5px;
             white-space: normal;
             word-wrap: break-word;
           }
@@ -752,9 +772,9 @@ const printTicket = async () => {
         <div class="ticket">
           <div class="table-label">Table</div>
           <div class="table-num">${res.table || '-'}</div>
-          <div class="name" style="${((res.name?.length || 0) > 28 || (res.company?.length || 0) > 28 || (res.position?.length || 0) > 28) ? 'font-size: 9px;' : ''}">${res.name}</div>
-          <div class="company" style="${((res.name?.length || 0) > 28 || (res.company?.length || 0) > 28 || (res.position?.length || 0) > 28) ? 'font-size: 9px;' : ''}">${res.company}</div>
-          <div class="position" style="${((res.name?.length || 0) > 28 || (res.company?.length || 0) > 28 || (res.position?.length || 0) > 28) ? 'font-size: 9px;' : ''}">${res.position}</div>
+          <div class="name" style="${((res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30) ? 'font-size: 9px;' : ''}">${res.name}</div>
+          <div class="position" style="${((res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30) ? 'font-size: 8px;' : ''}">${res.position}</div>
+          <div class="company" style="${((res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30) ? 'font-size: 8px;' : ''}">${res.company}</div>
         </div>
       </body>
     </html>
