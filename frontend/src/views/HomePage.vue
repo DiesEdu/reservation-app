@@ -5,6 +5,22 @@
     <div class="home-page-content">
       <!-- Header -->
       <header class="home-header">
+        <!-- Hero Section -->
+        <section class="hero-section">
+          <div class="hero-content">
+            <h1 class="hero-title">
+              <span class="title-line">Halal Bihalal</span>
+              <span class="title-line"
+                ><img src="/connected-in-harmony.png" alt="Resonanz Logo" class="logo-icon"
+              /></span>
+            </h1>
+            <p class="hero-subtitle">
+              bersama
+              <span><img src="/new-iforte.png" alt="Resonanz Logo" class="logo-icon" /></span>
+            </p>
+            <div class="hero-line"></div>
+          </div>
+        </section>
         <div class="container">
           <div class="header-content">
             <div class="header-text">
@@ -99,7 +115,6 @@
                   <span v-if="tableLoading" class="loading-text">Loading...</span>
                   <span v-if="tableError" class="error-text">{{ tableError }}</span>
                   <div class="per-page">
-                    <label for="per-page">Per page:</label>
                     <select
                       id="per-page"
                       v-model.number="itemsPerPage"
@@ -112,6 +127,7 @@
                       <option :value="50">50</option>
                       <option :value="100">100</option>
                     </select>
+                    <label for="per-page">/page</label>
                   </div>
                 </div>
 
@@ -121,7 +137,7 @@
                     <thead>
                       <tr>
                         <th @click="sortBy('name')" class="sortable">
-                          Customer
+                          Guest
                           <i v-if="sortField === 'name'" :class="sortIcon"></i>
                         </th>
                         <th>Table</th>
@@ -400,9 +416,9 @@ const fetchSummary = async () => {
 const summaryStats = computed(() => {
   return [
     {
-      label: 'Confirmed',
+      label: 'Total Guests',
       value: summaryStatsData.value.confirmed,
-      icon: 'bi bi-calendar-check',
+      icon: 'bi bi-people',
       color: 'info',
       trend: null,
     },
@@ -438,6 +454,131 @@ const summaryStats = computed(() => {
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+/* Hero Section */
+.hero-section {
+  text-align: center;
+  margin-bottom: 4rem;
+  animation: fadeInUp 1s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+  color: var(--primary-dark);
+}
+
+.title-line {
+  display: block;
+  opacity: 0;
+  animation: slideUp 0.8s ease-out forwards;
+}
+
+.title-line img {
+  width: 45%;
+  height: auto;
+}
+
+.title-line:nth-child(1) {
+  animation-delay: 0.2s;
+}
+.title-line:nth-child(2) {
+  animation-delay: 0.4s;
+}
+.title-line:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.title-line.gold {
+  background: linear-gradient(135deg, #d4af37 0%, #f4e5c2 50%, #d4af37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation:
+    slideUp 0.8s ease-out 0.4s forwards,
+    shimmer 3s ease-in-out infinite;
+  background: linear-gradient(135deg, var(--accent) 0%, #ff9f43 50%, var(--primary) 100%);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: #5b6b86;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 2rem;
+  opacity: 0;
+  animation: fadeIn 1s ease-out 0.8s forwards;
+}
+
+.hero-subtitle span {
+  height: 30px;
+}
+
+.hero-subtitle span img {
+  width: 10%;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.hero-line {
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  margin: 0 auto;
+  opacity: 0;
+  animation: expandLine 1s ease-out 1s forwards;
+}
+
+@keyframes expandLine {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 100px;
+    opacity: 1;
+  }
 }
 
 .page-title {

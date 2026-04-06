@@ -875,12 +875,12 @@ onUnmounted(() => {
   overflow: hidden;
   border: 2px solid var(--border);
   background: #000;
+  transform: scaleX(-1);
 }
 .qr-reader video {
   width: 100%;
   height: auto;
   display: block;
-  transform: scaleX(-1);
 }
 
 .btn-stop-scan {

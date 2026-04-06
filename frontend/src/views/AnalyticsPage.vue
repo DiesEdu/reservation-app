@@ -117,7 +117,6 @@
                   <span v-if="tableLoading" class="loading-text">Loading...</span>
                   <span v-if="tableError" class="error-text">{{ tableError }}</span>
                   <div class="per-page">
-                    <label for="per-page">Per page:</label>
                     <select
                       id="per-page"
                       v-model.number="itemsPerPage"
@@ -130,6 +129,7 @@
                       <option :value="50">50</option>
                       <option :value="100">100</option>
                     </select>
+                    <label for="per-page">/page</label>
                   </div>
                 </div>
 
@@ -139,7 +139,7 @@
                     <thead>
                       <tr>
                         <th @click="sortBy('name')" class="sortable">
-                          Customer
+                          Guest
                           <i v-if="sortField === 'name'" :class="sortIcon"></i>
                         </th>
                         <th>Table</th>
@@ -240,7 +240,9 @@
                 </div>
                 <div class="modal-badge" :class="{ verified: verificationDetails?.verified }">
                   <i
-                    :class="verificationDetails?.verified ? 'bi bi-check-circle' : 'bi bi-hourglass'"
+                    :class="
+                      verificationDetails?.verified ? 'bi bi-check-circle' : 'bi bi-hourglass'
+                    "
                   ></i>
                   {{ verificationDetails?.verified ? 'Verified' : 'Not Verified' }}
                 </div>
@@ -294,14 +296,24 @@
                 <button
                   v-if="!verificationDetails?.verified"
                   class="btn-primary"
-                  @click="async () => { await confirmManualVerification(); printTicket(); }"
+                  @click="
+                    async () => {
+                      await confirmManualVerification()
+                      printTicket()
+                    }
+                  "
                   :disabled="verificationLoading"
                 >
                   <i v-if="verificationLoading" class="bi bi-hourglass-split spinner"></i>
                   <i v-else class="bi bi-check-circle"></i>
                   <span>Verify</span>
                 </button>
-                <button v-if="verificationDetails?.verified" class="btn-secondary" @click="printTicket" :disabled="!selectedReservation">
+                <button
+                  v-if="verificationDetails?.verified"
+                  class="btn-secondary"
+                  @click="printTicket"
+                  :disabled="!selectedReservation"
+                >
                   <i class="bi bi-printer"></i>
                   <span>Print Ticket</span>
                 </button>
@@ -320,9 +332,9 @@ import { useReservationStore } from '../stores/reservations'
 import { useAuthStore } from '../stores/auth'
 import QRCode from 'qrcode'
 import Navbar from '../components/Navbar.vue'
-import granville from '@/assets/fonts/Granville.otf';
-import montserrat from '@/assets/fonts/Montserrat-VariableFont_wght.ttf';
-import cinzel from '@/assets/fonts/cinzel/Cinzel-Regular.otf';
+import granville from '@/assets/fonts/Granville.otf'
+import montserrat from '@/assets/fonts/Montserrat-VariableFont_wght.ttf'
+import cinzel from '@/assets/fonts/cinzel/Cinzel-Regular.otf'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
@@ -464,13 +476,18 @@ const saveSearchForSSE = async (query, verified = false) => {
   if (!query || query.length < 2) return
 
   const userEmail = authStore.user?.email || ''
-  console.log('Saving search to SSE:', { query, userEmail, verified, API_URL: `${API_URL}/save-search` })
+  console.log('Saving search to SSE:', {
+    query,
+    userEmail,
+    verified,
+    API_URL: `${API_URL}/save-search`,
+  })
 
   try {
     const response = await fetch(`${API_URL}/save-search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ search: query, email: userEmail, verified: verified })
+      body: JSON.stringify({ search: query, email: userEmail, verified: verified }),
     })
     const result = await response.json()
     console.log('SSE save response:', result)
@@ -621,15 +638,15 @@ const updateLocalReservation = (updated) => {
 }
 
 const convertToDataURL = async (url) => {
-  const response = await fetch(url);
-  const blob = await response.blob();
+  const response = await fetch(url)
+  const blob = await response.blob()
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
 
 const generateQRCode = async (reservation) => {
   selectedReservation.value = reservation
@@ -657,9 +674,9 @@ const printTicket = async () => {
   qrCodeDataUrl.value = ''
   await generateQRCode(res)
 
-  const fontGranville = await convertToDataURL(granville);
-  const fontMontserrat = await convertToDataURL(montserrat);
-  const fontCinzel = await convertToDataURL(cinzel);
+  const fontGranville = await convertToDataURL(granville)
+  const fontMontserrat = await convertToDataURL(montserrat)
+  const fontCinzel = await convertToDataURL(cinzel)
 
   const html = `
     <html>
@@ -762,9 +779,9 @@ const printTicket = async () => {
       <body>
         <div class="ticket">
           <div class="table-num">${res.seatCode || '-'}</div>
-          <div class="name" style="${((res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30) ? 'font-size: 9px;' : ''}">${res.name}</div>
-          <div class="position" style="${((res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30) ? 'font-size: 8px;' : ''}">${res.position}</div>
-          <div class="company" style="${((res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30) ? 'font-size: 8px;' : ''}">${res.company}</div>
+          <div class="name" style="${(res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30 ? 'font-size: 9px;' : ''}">${res.name}</div>
+          <div class="position" style="${(res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30 ? 'font-size: 8px;' : ''}">${res.position}</div>
+          <div class="company" style="${(res.name?.length || 0) > 30 || (res.company?.length || 0) > 30 || (res.position?.length || 0) > 30 ? 'font-size: 8px;' : ''}">${res.company}</div>
         </div>
       </body>
     </html>
@@ -875,9 +892,9 @@ const summaryStats = computed(() => {
   return [
     {
       label: 'Total Guests',
-      value: summaryStatsData.value.totalGuests,
+      value: summaryStatsData.value.confirmed,
       icon: 'bi bi-people',
-      color: 'gold',
+      color: 'info',
       trend: null,
     },
     {
