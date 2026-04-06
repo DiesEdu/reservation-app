@@ -24,6 +24,39 @@
           </div>
         </div>
 
+        <!-- Verified Popup -->
+        <transition name="popup">
+          <div v-if="showVerifiedPopup" class="verified-popup">
+            <div class="verified-popup-content">
+              <div class="confetti-container">
+                <div v-for="i in 20" :key="i" class="confetti" :style="{ '--delay': `${i * 0.1}s`, '--x': `${Math.random() * 100}%` }"></div>
+              </div>
+              <div class="popup-icon">
+                <i class="bi bi-check-circle-fill"></i>
+              </div>
+              <h3>Verification Complete</h3>
+              <div class="popup-details">
+                <div class="popup-seat" v-if="results[0]?.seat_code">
+                  <span class="popup-label">Table</span>
+                  <span class="popup-value-large">{{ results[0].seat_code }}</span>
+                </div>
+                <div class="popup-info" v-if="results[0]?.name">
+                  <span class="popup-label">Name</span>
+                  <span class="popup-value">{{ results[0].name }}</span>
+                </div>
+                <div class="popup-info" v-if="results[0]?.company">
+                  <span class="popup-label">Company</span>
+                  <span class="popup-value">{{ results[0].company }}</span>
+                </div>
+                <div class="popup-info" v-if="results[0]?.position">
+                  <span class="popup-label">Position</span>
+                  <span class="popup-value">{{ results[0].position }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </transition>
+
         <!-- Email Filter -->
         <div class="email-filter-card">
           <label for="email-filter" class="filter-label">
@@ -177,6 +210,7 @@ const results = ref([])
 const lastUpdate = ref(null)
 const pollInterval = ref(null)
 const lastPollTime = ref(0)
+const lastUserEmail = ref('')
 const connectionStatus = ref('Connecting...')
 
 // Email filter for selecting which user's search to view
@@ -187,6 +221,12 @@ const selectedEmail = ref('')
 const isVerified = ref(false)
 const countdown = ref(0)
 const countdownInterval = ref(null)
+
+// Show verified popup
+const showVerifiedPopup = ref(false)
+
+// Confetti animation state
+const showConfetti = ref(false)
 
 // Fetch user list for dropdown
 const fetchUsers = async () => {
@@ -228,6 +268,7 @@ const pollForResults = async () => {
 
     if (data.success && data.search && data.search !== lastPollTime.value) {
       lastPollTime.value = data.search
+      lastUserEmail.value = data.user_email || ''
       searchQuery.value = data.search
       results.value = data.results || []
       lastUpdate.value = new Date()
@@ -236,6 +277,7 @@ const pollForResults = async () => {
       // Check if verified is true
       if (data.verified === true) {
         isVerified.value = true
+        showVerifiedNotification()
         startCountdown()
       }
     }
@@ -251,13 +293,51 @@ const startCountdown = () => {
   if (countdownInterval.value) {
     clearInterval(countdownInterval.value)
   }
-  countdownInterval.value = setInterval(() => {
+  countdownInterval.value = setInterval(async () => {
     countdown.value--
     if (countdown.value <= 0) {
       clearInterval(countdownInterval.value)
+      // Clear sse_events before resetting
+      await clearSseEvents()
       resetToInitial()
     }
   }, 1000)
+}
+
+const clearSseEvents = async () => {
+  if (!lastUserEmail.value) return
+  try {
+    await fetch(`${API_URL}/clear-sse-events?email=${encodeURIComponent(lastUserEmail.value)}`, {
+      method: 'POST',
+    })
+  } catch (err) {
+    console.error('Failed to clear sse events:', err)
+  }
+}
+
+const triggerConfetti = () => {
+  showConfetti.value = true
+  setTimeout(() => {
+    showConfetti.value = false
+  }, 3000)
+}
+
+const showVerifiedNotification = () => {
+  showVerifiedPopup.value = true
+  triggerConfetti()
+  setTimeout(async () => {
+    showVerifiedPopup.value = false
+    // Clean sse_events by user_email from filter
+    if (selectedEmail.value) {
+      try {
+        await fetch(`${API_URL}/clear-sse-events?email=${encodeURIComponent(selectedEmail.value)}`, {
+          method: 'POST',
+        })
+      } catch (err) {
+        console.error('Failed to clear sse events:', err)
+      }
+    }
+  }, 5000)
 }
 
 const resetToInitial = () => {
@@ -828,6 +908,177 @@ onUnmounted(() => {
 
 .container {
   padding: 0 1.5rem;
+}
+
+/* Verified Popup */
+.verified-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.verified-popup-content {
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  border-radius: 24px;
+  padding: 2.5rem;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  border: 3px solid #22c55e;
+  position: relative;
+  overflow: hidden;
+  min-width: 300px;
+}
+
+.popup-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  animation: pop 0.5s ease-out;
+}
+
+.popup-icon i {
+  font-size: 2.5rem;
+  color: #ffffff;
+}
+
+.verified-popup-content h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #15803d;
+  margin: 0 0 1.5rem;
+}
+
+.popup-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.popup-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.popup-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.popup-value-large {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.popup-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.popup-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* Confetti Animation */
+.confetti-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: -20px;
+  left: var(--x);
+  background: var(--confetti-color, #22c55e);
+  animation: confetti-fall 3s ease-out forwards;
+  animation-delay: var(--delay, 0s);
+  border-radius: 2px;
+  opacity: 0;
+}
+
+.confetti:nth-child(odd) {
+  --confetti-color: #ff9f43;
+  width: 8px;
+  height: 12px;
+}
+
+.confetti:nth-child(3n) {
+  --confetti-color: #3b82f6;
+}
+
+.confetti:nth-child(4n) {
+  --confetti-color: #ec4899;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(400px) rotate(720deg) scale(0.5);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.popup-enter-active {
+  animation: popup-in 0.3s ease-out;
+}
+
+.popup-leave-active {
+  animation: popup-in 0.2s ease-in reverse;
+}
+
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (max-width: 640px) {

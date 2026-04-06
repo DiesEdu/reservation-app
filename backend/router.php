@@ -25,6 +25,12 @@ if ($uri === '/api/get-users') {
     return true;
 }
 
+// Clear sse events endpoint
+if ($uri === '/api/clear-sse-events') {
+    require __DIR__ . '/api/clear-sse-events.php';
+    return true;
+}
+
 // Route to api files based on path
 if (strpos($uri, '/api/auth') === 0) {
     require __DIR__ . '/api_auth.php';

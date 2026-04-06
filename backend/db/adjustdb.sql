@@ -8,3 +8,6 @@ ALTER TABLE reservations DROP COLUMN phone;
 ALTER TABLE reservations DROP COLUMN guests;
 ALTER TABLE reservations DROP COLUMN special_requests;
 ALTER TABLE reservations CHANGE COLUMN table_preference seat_code VARCHAR(100) NOT NULL DEFAULT 'Z99';
+ALTER TABLE sse_events ADD COLUMN user_email VARCHAR(255) AFTER search_query;
+ALTER TABLE sse_events ADD COLUMN verified BOOLEAN;
+------------------------------------------------------------------------------------
