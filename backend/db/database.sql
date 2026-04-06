@@ -14,10 +14,9 @@ CREATE TABLE IF NOT EXISTS reservations (
     sales_connection VARCHAR(255),
     date DATE NOT NULL,
     time TIME NOT NULL,
-    table_preference VARCHAR(100) NOT NULL DEFAULT 'Window Table',
+    seat_code VARCHAR(100) NOT NULL DEFAULT 'Window Table',
     table_color ENUM('Purple', 'Cyan', 'Orange', 'Cream', 'White') NOT NULL DEFAULT 'White',
     status ENUM('pending', 'confirmed', 'cancelled') NOT NULL DEFAULT 'pending',
-    special_requests TEXT,
     qr_code VARCHAR(255),
     generate_ticket DATETIME NULL,
     send_email DATETIME NULL,
@@ -48,12 +47,12 @@ CREATE TABLE IF NOT EXISTS reservation_verifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Insert sample data
-INSERT INTO reservations (name, position, company, sales_connection, date, time, table_preference, status, special_requests, created_at) VALUES
-('Sarah Johnson', 'Chief Executive Officer', 'Bank Central Asia', 'sales1@resonanz.id', '2026-03-20', '19:00:00', 'Window Table', 'confirmed', 'Anniversary dinner, please prepare a small cake', '2026-03-15 10:00:00'),
-('Michael Chen', 'Business Development Manager', 'Technology Company', 'sales2@resonanz.id', '2026-03-21', '20:30:00', 'VIP Booth', 'pending', 'Vegetarian menu options', '2026-03-15 11:30:00'),
-('Emma Williams', 'Manager', 'PT. Personal', 'sales1@resonanz.id', '2026-03-22', '18:00:00', 'Private Room A', 'confirmed', 'Birthday celebration, need high chair for toddler', '2026-03-14 09:00:00'),
-('James Rodriguez', 'Engineer', 'PT Batu Bara', 'sales3@resonanz.id', '2026-03-19', '19:30:00', 'Window Table', 'cancelled', '', '2026-03-14 14:00:00'),
-('Lisa Thompson', 'Management Trainee', 'Company XYZ', 'sales2@resonanz.id', '2026-03-23', '21:00:00', 'Champagne Bar', 'confirmed', 'Wine pairing menu preferred', '2026-03-13 16:00:00');
+INSERT INTO reservations (name, position, company, sales_connection, date, time, seat_code, status, created_at) VALUES
+('Sarah Johnson', 'Chief Executive Officer', 'Bank Central Asia', 'sales1@resonanz.id', '2026-03-20', '19:00:00', 'Window Table', 'confirmed', '2026-03-15 10:00:00'),
+('Michael Chen', 'Business Development Manager', 'Technology Company', 'sales2@resonanz.id', '2026-03-21', '20:30:00', 'VIP Booth', 'pending', '2026-03-15 11:30:00'),
+('Emma Williams', 'Manager', 'PT. Personal', 'sales1@resonanz.id', '2026-03-22', '18:00:00', 'Private Room A', 'confirmed', '2026-03-14 09:00:00'),
+('James Rodriguez', 'Engineer', 'PT Batu Bara', 'sales3@resonanz.id', '2026-03-19', '19:30:00', 'Window Table', 'cancelled', '2026-03-14 14:00:00'),
+('Lisa Thompson', 'Management Trainee', 'Company XYZ', 'sales2@resonanz.id', '2026-03-23', '21:00:00', 'Champagne Bar', 'confirmed', '2026-03-13 16:00:00');
 
 -- Update sample reservations with QR codes
 UPDATE reservations SET qr_code = CONCAT('RES-', id, '-', UNIX_TIMESTAMP(created_at)) WHERE qr_code IS NULL;

@@ -120,14 +120,14 @@ function getReservations()
         }
 
         if ($search !== null && $search !== '') {
-            $where[] = '(name LIKE ? OR table_preference LIKE ?)';
+            $where[] = '(name LIKE ? OR seat_code LIKE ?)';
             $pattern = '%' . $search . '%';
             $params[] = $pattern;
             $params[] = $pattern;
         }
 
         if ($table !== null && $table !== '') {
-            $where[] = 'table_preference = ?';
+            $where[] = 'seat_code = ?';
             $params[] = $table;
         }
 
@@ -163,9 +163,8 @@ function getReservations()
                 'salesConnection' => $res['sales_connection'],
                 'date' => $res['date'],
                 'time' => substr($res['time'], 0, 5),
-                'table' => $res['table_preference'],
+                'seatCode' => $res['seat_code'],
                 'status' => $res['status'],
-                'specialRequests' => $res['special_requests'],
                 'qrCode' => $res['qr_code'],
                 'verified' => (bool) $res['verified'],
                 'verifiedAt' => $res['verified_at'],
@@ -203,7 +202,7 @@ function getTablePreferences()
     $pdo = $db->getConnection();
 
     try {
-        $stmt = $pdo->query("SELECT DISTINCT table_preference FROM reservations WHERE table_preference IS NOT NULL AND table_preference <> '' ORDER BY table_preference ASC");
+        $stmt = $pdo->query("SELECT DISTINCT seat_code FROM reservations WHERE seat_code IS NOT NULL AND seat_code <> '' ORDER BY seat_code ASC");
         $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         echo json_encode([
@@ -214,7 +213,7 @@ function getTablePreferences()
         http_response_code(500);
         echo json_encode([
             'success' => false,
-            'error' => 'Failed to fetch table preferences: ' . $e->getMessage()
+            'error' => 'Failed to fetch seat codes: ' . $e->getMessage()
         ]);
     }
 }
@@ -346,9 +345,8 @@ function getReservation($id)
             'salesConnection' => $reservation['sales_connection'],
             'date' => $reservation['date'],
             'time' => substr($reservation['time'], 0, 5),
-            'table' => $reservation['table_preference'],
+            'seatCode' => $reservation['seat_code'],
             'status' => $reservation['status'],
-            'specialRequests' => $reservation['special_requests'],
             'qrCode' => $reservation['qr_code'],
             'verified' => (bool) $reservation['verified'],
             'verifiedAt' => $reservation['verified_at'],
@@ -380,7 +378,7 @@ function createReservation()
     $input = json_decode(file_get_contents('php://input'), true);
 
     // Validate required fields
-    $required = ['name', 'company', 'position', 'salesConnection', 'date', 'time', 'table'];
+    $required = ['name', 'company', 'position', 'salesConnection', 'date', 'time', 'seatCode'];
     $missing = [];
 
     foreach ($required as $field) {
@@ -401,8 +399,8 @@ function createReservation()
     try {
         $stmt = $pdo->prepare("
             INSERT INTO reservations
-            (name, company, position, sales_connection, date, time, table_preference, status, special_requests)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+            (name, company, position, sales_connection, date, time, seat_code, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending')
         ");
 
         $stmt->execute([
@@ -412,8 +410,7 @@ function createReservation()
             $input['salesConnection'],
             $input['date'],
             $input['time'],
-            $input['table'],
-            $input['specialRequests'] ?? ''
+            $input['seatCode']
         ]);
 
         $id = (int) $pdo->lastInsertId();
@@ -438,9 +435,8 @@ function createReservation()
             'salesConnection' => $reservation['sales_connection'],
             'date' => $reservation['date'],
             'time' => substr($reservation['time'], 0, 5),
-            'table' => $reservation['table_preference'],
+            'seatCode' => $reservation['seat_code'],
             'status' => $reservation['status'],
-            'specialRequests' => $reservation['special_requests'],
             'qrCode' => $reservation['qr_code'],
             'verified' => (bool) $reservation['verified'],
             'verifiedAt' => $reservation['verified_at'],
@@ -520,7 +516,7 @@ function importReservationsFromExcel()
             }
         }
 
-        $requiredHeaders = ['name', 'company', 'position', 'sales_connection', 'table_preference', 'date', 'time'];
+        $requiredHeaders = ['name', 'company', 'position', 'seat_code', 'date', 'time'];
         $missingHeaders = array_diff($requiredHeaders, array_values($headerMap));
         if (!empty($missingHeaders)) {
             http_response_code(400);
@@ -591,8 +587,8 @@ function importReservationsFromExcel()
 
         $insertStmt = $pdo->prepare("
             INSERT INTO reservations
-            (name, company, position, sales_connection, date, time, table_preference, status, special_requests)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', ?)
+            (name, company, position, date, time, seat_code, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'confirmed')
         ");
 
         $qrStmt = $pdo->prepare("UPDATE reservations SET qr_code = ? WHERE id = ?");
@@ -615,8 +611,7 @@ function importReservationsFromExcel()
                 (empty($rowValues['name'])) &&
                 (empty($rowValues['company'])) &&
                 (empty($rowValues['position'])) &&
-                (empty($rowValues['sales_connection'])) &&
-                (empty($rowValues['table_preference']))
+                (empty($rowValues['seat_code']))
             ) {
                 continue;
             }
@@ -624,10 +619,9 @@ function importReservationsFromExcel()
             $name = $rowValues['name'] ?? '';
             $company = $rowValues['company'] ?? '';
             $position = $rowValues['position'] ?? '';
-            $salesConnection = $rowValues['sales_connection'] ?? '';
-            $tablePreference = $rowValues['table_preference'] ?? ($rowValues['table'] ?? '');
+            $seatCode = $rowValues['seat_code'] ?? ($rowValues['seat'] ?? '');
 
-            if (!$name || !$company || !$position || !$salesConnection || !$tablePreference) {
+            if (!$name || !$company || !$seatCode) {
                 $errors[] = "Row {$row}: missing required fields";
                 continue;
             }
@@ -645,17 +639,13 @@ function importReservationsFromExcel()
                 continue;
             }
 
-            $specialRequests = $rowValues['special_requests'] ?? '';
-
             $insertStmt->execute([
                 $name,
                 $company,
                 $position,
-                $salesConnection,
                 $dateValue,
                 $timeValue,
-                $tablePreference,
-                $specialRequests
+                $seatCode
             ]);
 
             $newId = (int) $pdo->lastInsertId();
@@ -722,7 +712,7 @@ function updateReservation($id)
     }
 
     // Validate required fields
-    $required = ['name', 'company', 'position', 'salesConnection', 'date', 'time', 'table', 'status'];
+    $required = ['name', 'company', 'position', 'salesConnection', 'date', 'time', 'seatCode', 'status'];
     $missing = [];
 
     foreach ($required as $field) {
@@ -744,7 +734,7 @@ function updateReservation($id)
         $stmt = $pdo->prepare("
             UPDATE reservations 
             SET name = ?, company = ?, position = ?, sales_connection = ?, date = ?, time = ?, 
-                table_preference = ?, status = ?, special_requests = ?
+                seat_code = ?, status = ?
             WHERE id = ?
         ");
 
@@ -755,9 +745,8 @@ function updateReservation($id)
             $input['salesConnection'],
             $input['date'],
             $input['time'],
-            $input['table'],
+            $input['seatCode'],
             $input['status'],
-            $input['specialRequests'] ?? '',
             $id
         ]);
 
@@ -774,9 +763,8 @@ function updateReservation($id)
             'salesConnection' => $reservation['sales_connection'],
             'date' => $reservation['date'],
             'time' => substr($reservation['time'], 0, 5),
-            'table' => $reservation['table_preference'],
+            'seatCode' => $reservation['seat_code'],
             'status' => $reservation['status'],
-            'specialRequests' => $reservation['special_requests'],
             'createdAt' => $reservation['created_at']
         ];
 
@@ -923,9 +911,8 @@ function verifyReservation()
                 'salesConnection' => $reservation['sales_connection'],
                 'date' => $reservation['date'],
                 'time' => substr($reservation['time'], 0, 5),
-                'table' => $reservation['table_preference'],
+                'seatCode' => $reservation['seat_code'],
                 'status' => $reservation['status'],
-                'specialRequests' => $reservation['special_requests'],
                 'qrCode' => $reservation['qr_code'],
                 'verified' => true,
                 'verifiedAt' => $reservation['verified_at'],
@@ -968,7 +955,7 @@ function verifyReservation()
         ]);
 
         // Return updated reservation data
-        $formatted = [
+$formatted = [
             'id' => (int) $reservation['id'],
             'name' => $reservation['name'],
             'position' => $reservation['position'],
@@ -976,12 +963,11 @@ function verifyReservation()
             'salesConnection' => $reservation['sales_connection'],
             'date' => $reservation['date'],
             'time' => substr($reservation['time'], 0, 5),
-            'table' => $reservation['table_preference'],
+            'seatCode' => $reservation['seat_code'],
             'status' => $reservation['status'],
-            'specialRequests' => $reservation['special_requests'],
             'qrCode' => $reservation['qr_code'],
-            'verified' => true,
-            'verifiedAt' => $now->format('Y-m-d H:i:s'),
+            'verified' => (bool) $reservation['verified'],
+            'verifiedAt' => $reservation['verified_at'],
             'createdAt' => $reservation['created_at']
         ];
 

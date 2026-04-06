@@ -40,7 +40,7 @@ function getReservationsBySearch($pdo, $search) {
     
     $pattern = '%' . $search . '%';
     $stmt = $pdo->prepare("
-        SELECT id, name, company, position, sales_connection, table_preference, status, verified
+        SELECT id, name, company, position, sales_connection, seat_code, status, verified
         FROM reservations 
         WHERE name LIKE ? OR company LIKE ?
         ORDER BY name ASC

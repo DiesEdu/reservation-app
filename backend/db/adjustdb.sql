@@ -6,3 +6,5 @@ ALTER TABLE reservations ADD COLUMN sales_connection VARCHAR(255) AFTER company;
 ALTER TABLE reservations DROP COLUMN email;
 ALTER TABLE reservations DROP COLUMN phone;
 ALTER TABLE reservations DROP COLUMN guests;
+ALTER TABLE reservations DROP COLUMN special_requests;
+ALTER TABLE reservations CHANGE COLUMN table_preference seat_code VARCHAR(100) NOT NULL DEFAULT 'Z99';

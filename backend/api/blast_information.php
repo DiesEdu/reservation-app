@@ -109,7 +109,7 @@ function createBlastInfoGenerateTicket()
 
     try {
         $stmt = $pdo->prepare("
-            SELECT id, name, table_preference
+            SELECT id, name, seat_code
             FROM reservations
             WHERE generate_ticket IS NULL
         ");
@@ -136,7 +136,7 @@ function createBlastInfoGenerateTicket()
         foreach ($reservations as $reservation) {
             $id = $reservation['id'];
             $name = $reservation['name'];
-            $table = $reservation['table_preference'];
+            $seatCode = $reservation['seat_code'];
 
             // Generate ticket image (same as calling /reservations/{id}/ticket)
             $imageData = generateTicketImage($id);
@@ -146,7 +146,7 @@ function createBlastInfoGenerateTicket()
                 continue;
             }
 
-            $pdfPath = $outputDir . "/{$table}_{$name}.pdf";
+            $pdfPath = $outputDir . "/{$seatCode}_{$name}.pdf";
             $rundownImagePath = $basePath . '/templates/rundown.png';
             $rundownImageExists = file_exists($rundownImagePath);
             error_log("createBlastInfoGenerateTicket: rundownImagePath = {$rundownImagePath}, exists = " . ($rundownImageExists ? 'true' : 'false'));
@@ -207,7 +207,7 @@ function createBlastInfo()
 
         // Fetch all reservations that have not been emailed yet
         $stmt = $pdo->prepare("
-            SELECT id, name, position, company, table_preference, qr_code, sales_connection
+            SELECT id, name, position, company, seat_code, qr_code, sales_connection
             FROM reservations
             WHERE send_email IS NULL OR send_email = ''
         ");

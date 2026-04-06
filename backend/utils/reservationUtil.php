@@ -26,7 +26,7 @@ function getReservationTicketData($reservationId, $format = 'png')
         ];
     }
 
-    $stmt = $pdo->prepare("SELECT name, position, company, table_preference, table_color, qr_code FROM reservations WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT name, position, company, seat_code, table_color, qr_code FROM reservations WHERE id = ?");
     $stmt->execute([$reservationId]);
     $reservation = $stmt->fetch();
 
@@ -99,7 +99,7 @@ function renderReservationTicket($id, $format = 'png')
 /**
  * Create a GD image for the reservation ticket using the shared template.
  *
- * @param array $reservation Must include name, position, company, table_preference, qr_code
+ * @param array $reservation Must include name, position, company, seat_code, qr_code
  * @return resource GD image
  */
 function buildReservationTicketImage(array $reservation)
@@ -128,18 +128,18 @@ function buildReservationTicketImage(array $reservation)
     $name = $reservation['name'];
     $position = $reservation['position'];
     $company = $reservation['company'];
-    $tableTitle = 'Table';
-    $table = $reservation['table_preference'];
+    $seatTitle = 'Seat';
+    $seatCode = $reservation['seat_code'];
     $tableColor = $reservation['table_color'] ?? 'White';
     $qrData = $reservation['qr_code'];
 
     // Vertical layout: name -> QR -> table
-    $nameY = (int) ($height * 0.23);
-    $positionY = (int) ($height * 0.265);
-    $companyY = (int) ($height * 0.30);
+    $nameY = (int) ($height * 0.21);
+    $positionY = (int) ($height * 0.245);
+    $companyY = (int) ($height * 0.28);
     $qrGapBottom = (int) ($height * 0.03);
-    $tableTitleY = null;
-    $tableY = null;
+    $seatTitleY = null;
+    $seatY = null;
 
     $useSmallerFont = strlen($name) > 30 || strlen($position) > 30 || strlen($company) > 30;
     $nameFontSize = $useSmallerFont ? 40 : 55;
@@ -175,23 +175,23 @@ function buildReservationTicketImage(array $reservation)
                 $qrHeight
             );
 
-            // Set table Y relative to QR bottom
-            $tableTitleY = $qrY + $qrHeight + $qrGapBottom;
-            $tableY = $qrY + $qrHeight + $qrGapBottom + (int) ($height * 0.08);
+            // Set seat Y relative to QR bottom
+            $seatTitleY = $qrY + $qrHeight + $qrGapBottom;
+            $seatY = $qrY + $qrHeight + $qrGapBottom + (int) ($height * 0.08);
         } else {
             error_log("Failed to generate QR code for reservation ID: " . $reservation['qr_code']);
         }
     }
 
-    // Draw table text after QR placement
-    if ($tableY === null) {
+    // Draw seat text after QR placement
+    if ($seatY === null) {
         // Fallback if no QR: place below name with a gap
-        $tableY = $nameY + (int) ($height * 0.12);
+        $seatY = $nameY + (int) ($height * 0.12);
     }
 
-    drawCenteredGdText($image, $fontPathCustom, 35, $tableTitleY, ucwords($tableTitle), $textColor, true);
+    drawCenteredGdText($image, $fontPathCustom, 35, $seatTitleY, ucwords($seatTitle), $textColor, true);
 
-    drawCenteredGdTextWithBackground($image, $fontPathCustom, 140, $tableY, ucwords($table), $textColor, getTableColorRgb($tableColor), false, true);
+    drawCenteredGdTextWithBackground($image, $fontPathCustom, 140, $seatY, ucwords($seatCode), $textColor, getTableColorRgb($tableColor), false, true);
 
     return $image;
 }
