@@ -516,7 +516,7 @@ function importReservationsFromExcel()
             }
         }
 
-        $requiredHeaders = ['name', 'company', 'position', 'seat_code', 'date', 'time'];
+        $requiredHeaders = ['name', 'company', 'position', 'seat_code', 'table_color', 'date', 'time'];
         $missingHeaders = array_diff($requiredHeaders, array_values($headerMap));
         if (!empty($missingHeaders)) {
             http_response_code(400);
@@ -587,8 +587,8 @@ function importReservationsFromExcel()
 
         $insertStmt = $pdo->prepare("
             INSERT INTO reservations
-            (name, company, position, date, time, seat_code, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'confirmed')
+            (name, company, position, date, time, seat_code, table_color, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed')
         ");
 
         $qrStmt = $pdo->prepare("UPDATE reservations SET qr_code = ? WHERE id = ?");
@@ -611,7 +611,8 @@ function importReservationsFromExcel()
                 (empty($rowValues['name'])) &&
                 (empty($rowValues['company'])) &&
                 (empty($rowValues['position'])) &&
-                (empty($rowValues['seat_code']))
+                (empty($rowValues['seat_code'])) &&
+                (empty($rowValues['table_color']))
             ) {
                 continue;
             }
@@ -619,9 +620,10 @@ function importReservationsFromExcel()
             $name = $rowValues['name'] ?? '';
             $company = $rowValues['company'] ?? '';
             $position = $rowValues['position'] ?? '';
-            $seatCode = $rowValues['seat_code'] ?? ($rowValues['seat'] ?? '');
+            $seatCode = $rowValues['seat_code'] ?? '';
+            $tableColor = $rowValues['table_color'] ?? '';
 
-            if (!$name || !$company || !$seatCode) {
+            if (!$seatCode) {
                 $errors[] = "Row {$row}: missing required fields";
                 continue;
             }
@@ -645,7 +647,8 @@ function importReservationsFromExcel()
                 $position,
                 $dateValue,
                 $timeValue,
-                $seatCode
+                $seatCode,
+                $tableColor
             ]);
 
             $newId = (int) $pdo->lastInsertId();

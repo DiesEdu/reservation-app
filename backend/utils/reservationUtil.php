@@ -198,15 +198,16 @@ function buildReservationTicketImage(array $reservation)
 
 function getTableColorRgb($colorName)
 {
-    $colors = [
-        'Purple' => [128, 0, 128],
-        'Cyan' => [0, 255, 255],
-        'Orange' => [255, 165, 0],
-        'Cream' => [255, 253, 208],
-        'White' => [255, 255, 255],
-    ];
-    $result = $colors[$colorName] ?? [255, 255, 255];
-    return $result;
+    if (preg_match('/^#[0-9a-fA-F]{6}$/', $colorName)) {
+        $hex = ltrim($colorName, '#');
+        return [
+            hexdec(substr($hex, 0, 2)),
+            hexdec(substr($hex, 2, 2)),
+            hexdec(substr($hex, 4, 2)),
+        ];
+    }
+
+    return [255, 255, 255];
 }
 
 function drawCenteredGdTextWithBackground($image, $fontPath, $fontSize, $y, $text, $textColor, $bgColorRgb, $isItalic = false, $isBold = false)

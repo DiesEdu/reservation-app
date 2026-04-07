@@ -1,0 +1,1 @@
+ALTER TABLE reservations MODIFY table_color VARCHAR(20) NOT NULL DEFAULT '#ffffff';
