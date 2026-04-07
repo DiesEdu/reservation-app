@@ -1,21 +1,7 @@
 <template>
   <div class="customer-confirmation">
-    <!-- Access Denied Message -->
-    <div v-if="accessDenied" class="access-denied">
-      <div class="access-denied-card">
-        <i class="bi bi-shield-exclamation"></i>
-        <h2>Access Restricted</h2>
-        <p>You don't have permission to access this page.</p>
-        <p class="access-note">Only admin and staff roles can access the confirmation page.</p>
-        <button @click="$router.push('/')" class="btn-home">
-          <i class="bi bi-house"></i>
-          <span>Go to Home</span>
-        </button>
-      </div>
-    </div>
-
     <!-- Background Animation -->
-    <div v-else class="bg-animation">
+    <div class="bg-animation">
       <div class="bg-gradient"></div>
       <div class="particles-container">
         <span v-for="n in 15" :key="n" :style="particleStyle(n)"></span>
@@ -150,30 +136,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted, onMounted, nextTick } from 'vue'
+import { ref, onUnmounted, onMounted, nextTick } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
-import { useAuthStore } from '@/stores/auth'
 
 // API Base URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
-
-// Auth store
-const authStore = useAuthStore()
-
-// Check access permission - only admin and staff can access
-const canAccess = computed(() => authStore.canAccessConfirmation)
-const accessDenied = ref(false)
-
-// Redirect if no access
-onMounted(async () => {
-  await authStore.initializeAuth()
-  if (!canAccess.value) {
-    accessDenied.value = true
-  } else {
-    // Auto-start camera when page opens
-    await startScanner()
-  }
-})
 
 // State
 const scannerActive = ref(false)
