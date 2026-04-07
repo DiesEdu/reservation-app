@@ -79,6 +79,12 @@ if ($path === '/reservations' || $path === '/reservations/') {
 } elseif ($path === '/reservations/summary' && $method === 'GET') {
     // Get reservations summary counts
     getReservationSummary();
+} elseif ($path === '/reservations/update-sales' && $method === 'POST') {
+    // Update sales_connection from Excel
+    updateSalesConnectionFromExcel();
+} elseif ($path === '/reservations/sales-connections' && $method === 'GET') {
+    // Get distinct sales_connection values
+    getSalesConnections();
 } elseif ($path === '/reservations/analytics' && $method === 'GET') {
     // Get reservations analytics data for charts
     getReservationAnalytics();
@@ -129,6 +135,12 @@ function getReservations()
         if ($table !== null && $table !== '') {
             $where[] = 'seat_code = ?';
             $params[] = $table;
+        }
+
+        $salesConnection = isset($_GET['salesConnection']) ? trim($_GET['salesConnection']) : null;
+        if ($salesConnection !== null && $salesConnection !== '') {
+            $where[] = 'sales_connection = ?';
+            $params[] = $salesConnection;
         }
 
         $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
@@ -1090,6 +1102,179 @@ function deleteReservation($id)
         echo json_encode([
             'success' => false,
             'error' => 'Failed to delete reservation: ' . $e->getMessage()
+        ]);
+    }
+}
+
+/**
+ * POST - Update sales_connection from Excel file
+ * Excel must have two columns: "name" and "sales_connection" (case-insensitive headers)
+ */
+function updateSalesConnectionFromExcel()
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'error' => 'File upload failed or no file provided'
+        ]);
+        return;
+    }
+
+    $file = $_FILES['file'];
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+    if ($extension !== 'xlsx') {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Only .xlsx files are supported'
+        ]);
+        return;
+    }
+
+    $tmpPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('sales_', true) . '.xlsx';
+
+    if (!move_uploaded_file($file['tmp_name'], $tmpPath)) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to store uploaded file'
+        ]);
+        return;
+    }
+
+    try {
+        $spreadsheet = IOFactory::load($tmpPath);
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $highestColumnIndex = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+        $highestRow = $sheet->getHighestDataRow();
+
+        $headerMap = [];
+        for ($col = 1; $col <= $highestColumnIndex; $col++) {
+            $columnLetter = Coordinate::stringFromColumnIndex($col);
+            $value = strtolower(trim((string) $sheet->getCell($columnLetter . '1')->getValue()));
+            if (!empty($value)) {
+                $headerMap[$col] = $value;
+            }
+        }
+
+        $nameCol = array_search('name', $headerMap);
+        $salesCol = array_search('sales_connection', $headerMap);
+
+        if (!$nameCol || !$salesCol) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Excel must contain "name" and "sales_connection" columns'
+            ]);
+            unlink($tmpPath);
+            return;
+        }
+
+        $nameLetter = Coordinate::stringFromColumnIndex($nameCol);
+        $salesLetter = Coordinate::stringFromColumnIndex($salesCol);
+
+        $updated = 0;
+        $notFoundList = [];
+        $errors = [];
+
+        $pdo->beginTransaction();
+
+        $updateStmt = $pdo->prepare("
+            UPDATE reservations 
+            SET sales_connection = ? 
+            WHERE LOWER(name) = LOWER(?)
+        ");
+
+        for ($row = 2; $row <= $highestRow; $row++) {
+            $name = trim((string) $sheet->getCell($nameLetter . $row)->getValue());
+            $salesConnection = trim((string) $sheet->getCell($salesLetter . $row)->getValue());
+
+            if (empty($name)) {
+                continue;
+            }
+
+            try {
+                $updateStmt->execute([$salesConnection, $name]);
+                $affected = $updateStmt->rowCount();
+
+                if ($affected > 0) {
+                    $updated++;
+                } else {
+                    $notFoundList[] = [
+                        'name' => $name,
+                        'sales_connection' => $salesConnection
+                    ];
+                }
+            } catch (PDOException $e) {
+                $errors[] = "Row {$row}: " . $e->getMessage();
+            }
+        }
+
+        $pdo->commit();
+        unlink($tmpPath);
+
+        $response = [
+            'success' => true,
+            'message' => 'Sales connection updated successfully',
+            'updated' => $updated,
+            'notFound' => count($notFoundList),
+            'notFoundList' => $notFoundList
+        ];
+
+        if (!empty($errors)) {
+            $response['errors'] = $errors;
+        }
+
+        echo json_encode($response);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        if (file_exists($tmpPath)) {
+            unlink($tmpPath);
+        }
+
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to update sales connection: ' . $e->getMessage()
+        ]);
+    }
+}
+
+/**
+ * GET - Get distinct sales_connection values
+ */
+function getSalesConnections()
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    try {
+        $stmt = $pdo->query("
+            SELECT DISTINCT sales_connection 
+            FROM reservations 
+            WHERE sales_connection IS NOT NULL AND sales_connection != ''
+            ORDER BY sales_connection ASC
+        ");
+        $connections = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        echo json_encode([
+            'success' => true,
+            'data' => $connections
+        ]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to fetch sales connections: ' . $e->getMessage()
         ]);
     }
 }

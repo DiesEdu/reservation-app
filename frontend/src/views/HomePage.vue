@@ -100,6 +100,12 @@
                       <option value=""></option>
                       <option v-for="table in tableOptions" :key="table" :value="table"></option>
                     </datalist>
+                    <select v-model="salesConnectionFilter" class="filter-select" placeholder="All Sales">
+                      <option value="">All Sales</option>
+                      <option v-for="sales in salesConnectionOptions" :key="sales" :value="sales">
+                        {{ sales }}
+                      </option>
+                    </select>
                     <button @click="clearFilters" class="btn-clear">
                       <i class="bi bi-x-circle"></i>
                       Clear
@@ -141,6 +147,7 @@
                           <i v-if="sortField === 'name'" :class="sortIcon"></i>
                         </th>
                         <th>Table</th>
+                        <th>Sales</th>
                         <th>Status</th>
                         <th>Verified</th>
                       </tr>
@@ -158,6 +165,7 @@
                           </div>
                         </td>
                         <td>{{ reservation.seatCode }}</td>
+                        <td>{{ reservation.salesConnection || '-' }}</td>
                         <td>
                           <span class="status-badge" :class="reservation.status">
                             {{ reservation.status }}
@@ -228,12 +236,26 @@ const searchQuery = ref('')
 const statusFilter = ref('')
 const verifiedFilter = ref('')
 const tableFilter = ref('')
+const salesConnectionFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(20)
 const sortField = ref('name')
 const sortDirection = ref('desc')
 
 const tableOptions = computed(() => store.tableNames || [])
+const salesConnectionOptions = ref([])
+
+const fetchSalesConnections = async () => {
+  try {
+    const response = await fetch(`${API_URL}/reservations/sales-connections`)
+    const data = await response.json()
+    if (data.success) {
+      salesConnectionOptions.value = data.data || []
+    }
+  } catch (err) {
+    console.error('Failed to load sales connections:', err)
+  }
+}
 
 // Server-backed table data
 const tableData = ref([])
@@ -273,6 +295,12 @@ const tableResults = computed(() => {
     results = results.filter((r) => (r.seatCode || '').toString().toLowerCase() === tableQuery)
   }
 
+  // Sales connection filter
+  if (salesConnectionFilter.value) {
+    const salesQuery = salesConnectionFilter.value.toString().toLowerCase()
+    results = results.filter((r) => (r.salesConnection || '').toString().toLowerCase() === salesQuery)
+  }
+
   // Sort results
   results = [...results].sort((a, b) => {
     let aVal = a[sortField.value]
@@ -306,6 +334,7 @@ const fetchTableData = async () => {
   if (verifiedFilter.value !== '') params.set('verified', verifiedFilter.value)
   if (searchQuery.value) params.set('search', searchQuery.value)
   if (tableFilter.value) params.set('table', tableFilter.value)
+  if (salesConnectionFilter.value) params.set('salesConnection', salesConnectionFilter.value)
 
   try {
     const response = await fetch(`${API_URL}/reservations?${params.toString()}`)
@@ -334,7 +363,7 @@ const fetchTableData = async () => {
 }
 
 // Reset page and refetch when filters change
-watch([searchQuery, statusFilter, tableFilter, verifiedFilter], () => {
+watch([searchQuery, statusFilter, tableFilter, verifiedFilter, salesConnectionFilter], () => {
   currentPage.value = 1
   fetchTableData()
 })
@@ -371,6 +400,7 @@ const clearFilters = () => {
   statusFilter.value = ''
   verifiedFilter.value = ''
   tableFilter.value = ''
+  salesConnectionFilter.value = ''
   currentPage.value = 1
   fetchTableData()
 }
@@ -381,6 +411,7 @@ onMounted(async () => {
   store.fetchTableNames()
   await fetchTableData()
   fetchSummary()
+  fetchSalesConnections()
 })
 
 // Reset page on client-only filters
