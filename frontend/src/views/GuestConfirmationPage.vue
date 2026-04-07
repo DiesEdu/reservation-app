@@ -67,6 +67,7 @@
             id="email-filter"
             v-model="selectedEmail"
             class="email-select"
+            :disabled="isEmailFromUrl"
           >
             <option value="">All Staff</option>
             <option v-for="user in users" :key="user.id" :value="user.email">
@@ -199,7 +200,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
@@ -216,6 +220,8 @@ const connectionStatus = ref('Connecting...')
 // Email filter for selecting which user's search to view
 const users = ref([])
 const selectedEmail = ref('')
+const emailFromUrl = computed(() => route.query.email || '')
+const isEmailFromUrl = ref(false)
 
 // Verified state for showing reservation details
 const isVerified = ref(false)
@@ -366,6 +372,13 @@ const formatTime = (date) => {
 
 onMounted(async () => {
   await fetchUsers()
+  
+  // If email is provided in URL, use it to filter
+  if (emailFromUrl.value) {
+    selectedEmail.value = emailFromUrl.value
+    isEmailFromUrl.value = true
+  }
+  
   startPolling()
 })
 
@@ -467,6 +480,12 @@ onUnmounted(() => {
   outline: none;
   border-color: var(--primary, #1f4fa3);
   box-shadow: 0 0 0 3px rgba(31, 79, 163, 0.12);
+}
+
+.email-select:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .status-indicator {
