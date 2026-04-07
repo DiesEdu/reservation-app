@@ -529,6 +529,7 @@ function importReservationsFromExcel()
         }
 
         $requiredHeaders = ['name', 'company', 'position', 'seat_code', 'table_color', 'date', 'time'];
+        $optionalHeaders = ['award_status'];
         $missingHeaders = array_diff($requiredHeaders, array_values($headerMap));
         if (!empty($missingHeaders)) {
             http_response_code(400);
@@ -539,6 +540,14 @@ function importReservationsFromExcel()
             unlink($tmpPath);
             return;
         }
+
+        $existingNames = [];
+        $stmt = $pdo->query("SELECT LOWER(name) as name FROM reservations");
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $existingNames[$row['name']] = true;
+        }
+
+        $importedNames = [];
 
         $normalizeDate = function ($value) {
             if ($value === null || $value === '') {
@@ -599,8 +608,8 @@ function importReservationsFromExcel()
 
         $insertStmt = $pdo->prepare("
             INSERT INTO reservations
-            (name, company, position, date, time, seat_code, table_color, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed')
+            (name, company, awardee, position, date, time, seat_code, table_color, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')
         ");
 
         $qrStmt = $pdo->prepare("UPDATE reservations SET qr_code = ? WHERE id = ?");
@@ -634,8 +643,15 @@ function importReservationsFromExcel()
             $position = $rowValues['position'] ?? '';
             $seatCode = $rowValues['seat_code'] ?? '';
             $tableColor = $rowValues['table_color'] ?? '';
+            $awardStatusRaw = $rowValues['award_status'] ?? '';
 
-            if (!$seatCode) {
+            $nameLower = strtolower($name);
+            if (isset($existingNames[$nameLower]) || isset($importedNames[$nameLower])) {
+                $errors[] = "Row {$row}: duplicate name '{$name}' (exists in database or earlier in file)";
+                continue;
+            }
+
+            if (!$name || !$seatCode) {
                 $errors[] = "Row {$row}: missing required fields";
                 continue;
             }
@@ -653,15 +669,26 @@ function importReservationsFromExcel()
                 continue;
             }
 
+            $awardee = 'NON-AWARD';
+            if (!empty($awardStatusRaw)) {
+                $awardStatusLower = strtolower(trim($awardStatusRaw));
+                if ($awardStatusLower === 'award' || $awardStatusLower === 'yes' || $awardStatusLower === 'true') {
+                    $awardee = 'AWARD';
+                }
+            }
+
             $insertStmt->execute([
                 $name,
                 $company,
+                $awardee,
                 $position,
                 $dateValue,
                 $timeValue,
                 $seatCode,
                 $tableColor
             ]);
+
+            $importedNames[$nameLower] = true;
 
             $newId = (int) $pdo->lastInsertId();
             $randomSuffix = strtoupper(bin2hex(random_bytes(2))); // 4-char alphanumeric

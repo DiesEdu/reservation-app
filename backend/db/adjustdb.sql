@@ -11,3 +11,5 @@ ALTER TABLE reservations CHANGE COLUMN table_preference seat_code VARCHAR(100) N
 ALTER TABLE sse_events ADD COLUMN user_email VARCHAR(255) AFTER search_query;
 ALTER TABLE sse_events ADD COLUMN verified BOOLEAN;
 ------------------------------------------------------------------------------------
+ALTER TABLE reservations MODIFY table_color VARCHAR(20) NOT NULL DEFAULT '#ffffff';
+ALTER TABLE reservations ADD COLUMN awardee ENUM('AWARD', 'NON-AWARD') NOT NULL DEFAULT 'NON-AWARD' AFTER company;
