@@ -110,6 +110,15 @@
                         {{ sales }}
                       </option>
                     </select>
+                    <select
+                      v-model="isAwardeeFilter"
+                      class="filter-select"
+                      placeholder="All Awardee"
+                    >
+                      <option value="">All Awardee</option>
+                      <option value="AWARD">Award</option>
+                      <option value="NON-AWARD">Non-Award</option>
+                    </select>
                     <button @click="clearFilters" class="btn-clear">
                       <i class="bi bi-x-circle"></i>
                       Clear
@@ -152,7 +161,7 @@
                         </th>
                         <th>Table</th>
                         <th>SM</th>
-                        <th>Status</th>
+                        <th>Is Awardee</th>
                         <th>Verified</th>
                       </tr>
                     </thead>
@@ -171,8 +180,8 @@
                         <td>{{ reservation.seatCode }}</td>
                         <td>{{ reservation.salesConnection || '-' }}</td>
                         <td>
-                          <span class="status-badge" :class="reservation.status">
-                            {{ reservation.status }}
+                          <span class="status-badge" :class="reservation.awardee">
+                            {{ reservation.awardee }}
                           </span>
                         </td>
                         <td>
@@ -241,6 +250,7 @@ const statusFilter = ref('')
 const verifiedFilter = ref('')
 const tableFilter = ref('')
 const salesConnectionFilter = ref('')
+const isAwardeeFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(20)
 const sortField = ref('name')
@@ -307,6 +317,11 @@ const tableResults = computed(() => {
     )
   }
 
+  if (isAwardeeFilter.value) {
+    const awardeeQuery = isAwardeeFilter.value.toString().toLowerCase()
+    results = results.filter((r) => (r.awardee || '').toString().toLowerCase() === awardeeQuery)
+  }
+
   // Sort results
   results = [...results].sort((a, b) => {
     let aVal = a[sortField.value]
@@ -341,6 +356,7 @@ const fetchTableData = async () => {
   if (searchQuery.value) params.set('search', searchQuery.value)
   if (tableFilter.value) params.set('table', tableFilter.value)
   if (salesConnectionFilter.value) params.set('salesConnection', salesConnectionFilter.value)
+  if (isAwardeeFilter.value) params.set('awardee', isAwardeeFilter.value)
 
   try {
     const response = await fetch(`${API_URL}/reservations?${params.toString()}`)
@@ -369,10 +385,13 @@ const fetchTableData = async () => {
 }
 
 // Reset page and refetch when filters change
-watch([searchQuery, statusFilter, tableFilter, verifiedFilter, salesConnectionFilter], () => {
-  currentPage.value = 1
-  fetchTableData()
-})
+watch(
+  [searchQuery, statusFilter, tableFilter, verifiedFilter, salesConnectionFilter, isAwardeeFilter],
+  () => {
+    currentPage.value = 1
+    fetchTableData()
+  },
+)
 
 // Refetch when page changes
 watch(currentPage, () => {
@@ -407,6 +426,7 @@ const clearFilters = () => {
   verifiedFilter.value = ''
   tableFilter.value = ''
   salesConnectionFilter.value = ''
+  isAwardeeFilter.value = ''
   currentPage.value = 1
   fetchTableData()
 }
@@ -959,17 +979,13 @@ const summaryStats = computed(() => {
   font-weight: 700;
   text-transform: capitalize;
 }
-.status-badge.pending {
+.status-badge.NON-AWARD {
   background: rgba(246, 196, 0, 0.18);
   color: #b87400;
 }
-.status-badge.confirmed {
+.status-badge.AWARD {
   background: rgba(126, 217, 87, 0.2);
   color: #1f7a2f;
-}
-.status-badge.cancelled {
-  background: rgba(255, 107, 107, 0.2);
-  color: #c92c3a;
 }
 .verified-badge {
   display: inline-flex;

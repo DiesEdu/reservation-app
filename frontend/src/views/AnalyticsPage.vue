@@ -92,6 +92,11 @@
                       <option value="1">Verified</option>
                       <option value="0">Not Verified</option>
                     </select>
+                    <select v-model="isAwardFilter" class="filter-select">
+                      <option value="">All Awardee</option>
+                      <option value="AWARD">Award</option>
+                      <option value="NON-AWARD">Non-Award</option>
+                    </select>
                     <input
                       v-model="tableFilter"
                       list="table-options"
@@ -144,6 +149,7 @@
                         </th>
                         <th>Table</th>
                         <th>Verified</th>
+                        <th>Awardee</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -168,6 +174,11 @@
                               "
                             ></i>
                             {{ reservation.verified ? 'Yes' : 'No' }}
+                          </span>
+                        </td>
+                        <td>
+                          <span class="status-badge" :class="reservation.awardee">
+                            {{ reservation.awardee }}
                           </span>
                         </td>
                         <td>
@@ -347,6 +358,7 @@ const accessDenied = ref(false)
 const searchQuery = ref('')
 const statusFilter = ref('')
 const verifiedFilter = ref('')
+const isAwardFilter = ref('')
 const tableFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(20)
@@ -436,6 +448,7 @@ const fetchTableData = async () => {
   params.set('limit', itemsPerPage.value.toString())
   if (statusFilter.value) params.set('status', statusFilter.value)
   if (verifiedFilter.value !== '') params.set('verified', verifiedFilter.value)
+  if (isAwardFilter.value !== '') params.set('awardee', isAwardFilter.value)
   if (searchQuery.value) params.set('search', searchQuery.value)
   if (tableFilter.value) params.set('table', tableFilter.value)
 
@@ -497,7 +510,7 @@ const saveSearchForSSE = async (query, verified = false) => {
 }
 
 // Reset page and refetch when filters change
-watch([searchQuery, statusFilter, tableFilter, verifiedFilter], () => {
+watch([searchQuery, statusFilter, tableFilter, verifiedFilter, isAwardFilter], () => {
   currentPage.value = 1
   fetchTableData()
 })
@@ -544,6 +557,7 @@ const clearFilters = () => {
   searchQuery.value = ''
   statusFilter.value = ''
   verifiedFilter.value = ''
+  isAwardFilter.value = ''
   tableFilter.value = ''
   currentPage.value = 1
   fetchTableData()
@@ -1931,6 +1945,22 @@ const summaryStats = computed(() => {
   color: #c92c3a;
 }
 .verified-badge.verified {
+  color: #1f7a2f;
+}
+.status-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.status-badge.NON-AWARD {
+  background: rgba(246, 196, 0, 0.18);
+  color: #b87400;
+}
+.status-badge.AWARD {
+  background: rgba(126, 217, 87, 0.2);
   color: #1f7a2f;
 }
 .empty-message {

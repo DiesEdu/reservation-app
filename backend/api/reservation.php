@@ -146,6 +146,12 @@ function getReservations()
             $params[] = $salesConnection;
         }
 
+        $awardee = isset($_GET['awardee']) ? trim($_GET['awardee']) : 'NON-AWARD';
+        if ($awardee !== null && $awardee !== '') {
+            $where[] = 'awardee = ?';
+            $params[] = $awardee;
+        }
+
         $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
         // Total count for pagination
@@ -176,6 +182,7 @@ function getReservations()
                 'company' => $res['company'],
                 'position' => $res['position'],
                 'salesConnection' => $res['sales_connection'],
+                'awardee' => $res['awardee'],
                 'date' => $res['date'],
                 'time' => substr($res['time'], 0, 5),
                 'seatCode' => $res['seat_code'],
