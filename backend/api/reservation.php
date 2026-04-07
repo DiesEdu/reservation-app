@@ -88,6 +88,9 @@ if ($path === '/reservations' || $path === '/reservations/') {
 } elseif ($path === '/reservations/analytics' && $method === 'GET') {
     // Get reservations analytics data for charts
     getReservationAnalytics();
+} elseif ($path === '/reservations/manual-insert' && $method === 'POST') {
+    // Manual insert reservation (for Postman/API)
+    manualInsertReservation();
 } else {
     http_response_code(404);
     echo json_encode(['success' => false, 'error' => 'Endpoint not found']);
@@ -1302,6 +1305,128 @@ function getSalesConnections()
         echo json_encode([
             'success' => false,
             'error' => 'Failed to fetch sales connections: ' . $e->getMessage()
+        ]);
+    }
+}
+
+/**
+ * POST - Manual insert reservation (for Postman/API)
+ * Input: name, company, position, seat_code, table_color, date (yyyy-MM-dd), time (HH:mm), award_status
+ */
+function manualInsertReservation()
+{
+    $db = Database::getInstance();
+    $pdo = $db->getConnection();
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    $required = ['name', 'company', 'position', 'seat_code', 'table_color', 'date', 'time'];
+    $missing = [];
+
+    foreach ($required as $field) {
+        if (empty($input[$field])) {
+            $missing[] = $field;
+        }
+    }
+
+    if (!empty($missing)) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Missing required fields: ' . implode(', ', $missing)
+        ]);
+        return;
+    }
+
+    $date = trim($input['date']);
+    $time = trim($input['time']);
+    $tableColor = trim($input['table_color']);
+    $awardStatusRaw = $input['award_status'] ?? '';
+
+    $dateObj = DateTime::createFromFormat('Y-m-d', $date);
+    if (!$dateObj) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Invalid date format. Expected: yyyy-MM-dd'
+        ]);
+        return;
+    }
+
+    $timeObj = DateTime::createFromFormat('H:i', $time);
+    if (!$timeObj) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Invalid time format. Expected: HH:mm'
+        ]);
+        return;
+    }
+
+    $awardee = 'NON-AWARD';
+    if (!empty($awardStatusRaw)) {
+        $awardStatusLower = strtolower(trim($awardStatusRaw));
+        if ($awardStatusLower === 'award' || $awardStatusLower === 'yes' || $awardStatusLower === 'true' || $awardStatusLower === '1') {
+            $awardee = 'AWARD';
+        }
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO reservations
+            (name, company, awardee, position, date, time, seat_code, table_color, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')
+        ");
+
+        $stmt->execute([
+            trim($input['name']),
+            trim($input['company']),
+            $awardee,
+            trim($input['position']),
+            $date,
+            $time . ':00',
+            trim($input['seat_code']),
+            $tableColor
+        ]);
+
+        $id = (int) $pdo->lastInsertId();
+
+        $randomSuffix = strtoupper(bin2hex(random_bytes(2)));
+        $qrCode = 'RES-' . $id . '-' . time() . '-' . $randomSuffix;
+
+        $qrStmt = $pdo->prepare("UPDATE reservations SET qr_code = ? WHERE id = ?");
+        $qrStmt->execute([$qrCode, $id]);
+
+        $selectStmt = $pdo->prepare("SELECT * FROM reservations WHERE id = ?");
+        $selectStmt->execute([$id]);
+        $reservation = $selectStmt->fetch();
+
+        $formatted = [
+            'id' => (int) $reservation['id'],
+            'name' => $reservation['name'],
+            'company' => $reservation['company'],
+            'position' => $reservation['position'],
+            'date' => $reservation['date'],
+            'time' => substr($reservation['time'], 0, 5),
+            'seatCode' => $reservation['seat_code'],
+            'tableColor' => $reservation['table_color'],
+            'awardStatus' => $reservation['awardee'],
+            'status' => $reservation['status'],
+            'qrCode' => $reservation['qr_code'],
+            'createdAt' => $reservation['created_at']
+        ];
+
+        http_response_code(201);
+        echo json_encode([
+            'success' => true,
+            'message' => 'Reservation created successfully',
+            'data' => $formatted
+        ]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to create reservation: ' . $e->getMessage()
         ]);
     }
 }

@@ -100,8 +100,12 @@
                       <option value=""></option>
                       <option v-for="table in tableOptions" :key="table" :value="table"></option>
                     </datalist>
-                    <select v-model="salesConnectionFilter" class="filter-select" placeholder="All Sales">
-                      <option value="">All Sales</option>
+                    <select
+                      v-model="salesConnectionFilter"
+                      class="filter-select"
+                      placeholder="All SM"
+                    >
+                      <option value="">All SM</option>
                       <option v-for="sales in salesConnectionOptions" :key="sales" :value="sales">
                         {{ sales }}
                       </option>
@@ -147,7 +151,7 @@
                           <i v-if="sortField === 'name'" :class="sortIcon"></i>
                         </th>
                         <th>Table</th>
-                        <th>Sales</th>
+                        <th>SM</th>
                         <th>Status</th>
                         <th>Verified</th>
                       </tr>
@@ -298,7 +302,9 @@ const tableResults = computed(() => {
   // Sales connection filter
   if (salesConnectionFilter.value) {
     const salesQuery = salesConnectionFilter.value.toString().toLowerCase()
-    results = results.filter((r) => (r.salesConnection || '').toString().toLowerCase() === salesQuery)
+    results = results.filter(
+      (r) => (r.salesConnection || '').toString().toLowerCase() === salesQuery,
+    )
   }
 
   // Sort results
